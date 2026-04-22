@@ -1,2 +1,2 @@
 # Frontend
-Frontend: frontend part of the taxi websystem source code.
+This repository contains the source code of the fourth year university diploma work using React + TypeScript.
