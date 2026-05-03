@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
+import CompleteRegistrationPage from './pages/CompleteRegistrationPage';
 import DriverDashboard from './pages/driver/DriverDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import ManagerLayout from './layouts/ManagerLayout';
@@ -12,6 +13,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/complete-registration" element={<CompleteRegistrationPage />} />
 
       <Route element={<ProtectedRoute requiredRole="Manager" />}>
         <Route path="/manager" element={<ManagerLayout />}>

@@ -5,9 +5,6 @@ import { api } from '../api/axios';
 
 type Step = 'phone' | 'otp';
 
-const inputBase =
-  'w-full bg-gray-900 border text-white placeholder-gray-600 rounded-xl py-3.5 text-sm outline-none ring-0 transition-all';
-
 export default function LoginPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>('phone');
@@ -43,14 +40,23 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await api.post<{ token: string; role: string }>('/auth/verify-code', {
-        phoneNumber: phone,
-        code,
-      });
-      const { token, role } = res.data;
+      const res = await api.post<{ token: string; role: string; requiresRegistration?: boolean }>(
+        '/auth/verify-code',
+        {
+          phoneNumber: phone,
+          code,
+        }
+      );
+      const { token, role, requiresRegistration } = res.data;
       localStorage.setItem('token', token);
       localStorage.setItem('role', role);
-      navigate(role === 'Manager' || role === 'SuperAdmin' ? '/manager/dashboard' : '/driver/dashboard');
+      if (requiresRegistration) {
+        navigate('/complete-registration', { replace: true });
+      } else {
+        navigate(role === 'Manager' || role === 'SuperAdmin' ? '/manager/whitelist' : '/driver/dashboard', {
+          replace: true,
+        });
+      }
     } catch {
       setError('Невірний або прострочений код.');
     } finally {
@@ -63,20 +69,23 @@ export default function LoginPage() {
       {/* Left panel — branding */}
       <div className="hidden lg:flex flex-col justify-between w-1/2 bg-gray-900 border-r border-gray-800 p-12">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-yellow-400 flex items-center justify-center">
-            <Car className="w-5 h-5 text-gray-950" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-500">
+            <Car className="h-5 w-5 text-gray-950" />
           </div>
           <span className="text-white font-bold text-xl tracking-tight">Taxi 839</span>
         </div>
 
         <div className="space-y-5">
-          <div className="inline-flex items-center gap-2 bg-yellow-400/10 border border-yellow-400/20 rounded-full px-4 py-2">
-            <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
-            <span className="text-yellow-400 text-sm font-medium">Онлайн</span>
+          <div className="inline-flex items-center gap-2 rounded-full border border-yellow-500/20 bg-yellow-500/10 px-4 py-2">
+            <span className="relative inline-flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-yellow-500 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-yellow-500" />
+            </span>
+            <span className="text-sm font-medium text-yellow-500">Онлайн</span>
           </div>
-          <h1 className="text-5xl font-black text-white leading-tight tracking-tight">
+          <h1 className="text-5xl font-black leading-tight tracking-tight text-white">
             Платформа для<br />
-            <span className="text-yellow-400">водіїв та менеджерів</span>
+            <span className="text-yellow-500">водіїв та менеджерів</span>
           </h1>
           <p className="text-gray-400 text-lg leading-relaxed max-w-sm">
             Таксі - це просто, зручно і надійно.
@@ -102,8 +111,8 @@ export default function LoginPage() {
 
           {/* Mobile logo */}
           <div className="flex lg:hidden items-center justify-center gap-3 mb-10">
-            <div className="w-10 h-10 rounded-xl bg-yellow-400 flex items-center justify-center">
-              <Car className="w-5 h-5 text-gray-950" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-500">
+              <Car className="h-5 w-5 text-gray-950" />
             </div>
             <span className="text-white font-bold text-xl tracking-tight">Taxi 839</span>
           </div>
@@ -123,9 +132,13 @@ export default function LoginPage() {
             <form onSubmit={handleSendCode} className="space-y-4 animate-fade-in">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-gray-300">Номер телефону</label>
-                <div className={`flex items-center bg-gray-900 border rounded-xl overflow-hidden transition-all focus-within:border-yellow-400/60 ${
-                  digits.length > 0 && !isPhoneValid ? 'border-red-500/60' : 'border-gray-700'
-                }`}>
+                <div
+                  className={`phone-field-wrap overflow-hidden rounded-xl ${
+                    digits.length > 0 && !isPhoneValid
+                      ? '!border-red-500/60 focus-within:!border-red-500/60 focus-within:!ring-1 focus-within:!ring-red-500/40'
+                      : ''
+                  }`}
+                >
                   <div className="flex items-center gap-2 pl-4 pr-3 border-r border-gray-700 shrink-0">
                     <Phone className="w-4 h-4 text-gray-500" />
                     <span className="text-gray-300 text-sm font-medium">+380</span>
@@ -157,7 +170,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading || !isPhoneValid}
-                className="w-full bg-yellow-400 hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed text-gray-950 font-semibold rounded-xl py-3.5 text-sm flex items-center justify-center gap-2 transition-all duration-200 mt-2"
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-500 py-3.5 text-sm font-semibold text-gray-950 transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -190,11 +203,11 @@ export default function LoginPage() {
                     }}
                     required
                     autoFocus
-                    className={`${inputBase} pl-11 pr-4 border-gray-700 focus:border-yellow-400/60 font-mono tracking-[0.4em] text-center`}
+                    className="field-input !rounded-xl py-3.5 pl-11 pr-4 font-mono tracking-[0.4em] text-center placeholder:text-gray-600"
                   />
                 </div>
                 <p className="text-xs text-gray-500 text-center pt-1">
-                  Код дійсний протягом 5 хвилин
+                  Код дійсний протягом 5 хвилин.
                 </p>
               </div>
 
@@ -207,7 +220,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading || code.length !== 6}
-                className="w-full bg-yellow-400 hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed text-gray-950 font-semibold rounded-xl py-3.5 text-sm flex items-center justify-center gap-2 transition-all duration-200"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-500 py-3.5 text-sm font-semibold text-gray-950 transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

@@ -1,19 +1,21 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/axios';
-import { getCurrentRole } from '../../utils/auth';
+import { getCurrentRole, getCurrentUserId } from '../../utils/auth';
 
 interface ManagerOption {
   id: number;
   userId: number;
   name: string;
   phoneNumber: string;
+  role: 'SuperAdmin' | 'Manager' | 'Driver';
 }
 
 export default function SettingsPage() {
   const navigate = useNavigate();
   const role = getCurrentRole();
+  const currentUserId = getCurrentUserId();
   const isSuperAdmin = role === 'SuperAdmin';
 
   const [isTransferOpen, setIsTransferOpen] = useState(false);
@@ -80,9 +82,9 @@ export default function SettingsPage() {
         <div className="flex items-start gap-3">
           <AlertTriangle className="mt-0.5 text-red-400" size={18} />
           <div>
-            <h3 className="text-sm font-semibold text-red-300">Передати права SuperAdmin</h3>
+            <h3 className="text-sm font-semibold text-red-300">Передати права Адміністратора</h3>
             <p className="mt-1 text-sm text-red-200/80">
-              Незворотна дія: після підтвердження ваш акаунт буде понижено до Manager.
+              Незворотна дія: роль буде змінена на Менеджера.
             </p>
             <button
               type="button"
@@ -90,7 +92,7 @@ export default function SettingsPage() {
               onClick={() => setIsTransferOpen(true)}
               className="mt-3 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Відкрити передачу прав
+              Розпочати передачу прав
             </button>
           </div>
         </div>
@@ -100,14 +102,14 @@ export default function SettingsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-lg rounded-xl border border-red-500/40 bg-gray-900 p-5">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-white">Передати права SuperAdmin</h3>
+              <h3 className="text-base font-semibold text-white">Передати права Адміністратора</h3>
               <button type="button" onClick={closeTransferModal} className="rounded-md p-1 text-gray-400 hover:bg-gray-800">
                 <X size={16} />
               </button>
             </div>
 
             <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
-              Увага: дія критична. Щоб продовжити, оберіть менеджера й введіть <span className="font-semibold text-red-100">CONFIRM</span>.
+              Оберіть менеджера й введіть <span className="font-semibold text-red-100">ПІДТВЕРДИТИ</span>.
             </div>
 
             <form onSubmit={transferSuperAdmin} className="space-y-3">
@@ -117,30 +119,32 @@ export default function SettingsPage() {
                   required
                   value={targetId}
                   onChange={(event) => setTargetId(event.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white outline-none focus:border-red-400/70"
+                  className="field-select mt-1"
                 >
                   <option value="">Оберіть менеджера</option>
-                  {managers.map((manager) => (
+                  {managers
+                    .filter((manager) => manager.userId !== currentUserId && manager.role === 'Manager')
+                    .map((manager) => (
                     <option key={manager.id} value={manager.userId}>
                       #{manager.userId} — {manager.name} ({manager.phoneNumber})
                     </option>
-                  ))}
+                    ))}
                 </select>
               </label>
 
               <label className="block text-sm text-gray-300">
-                Введіть CONFIRM
+                Введіть ПІДТВЕРДИТИ
                 <input
                   required
                   value={confirmText}
                   onChange={(event) => setConfirmText(event.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white outline-none focus:border-red-400/70"
+                  className="mt-1 field-input"
                 />
               </label>
 
               <button
                 type="submit"
-                disabled={loading || confirmText !== 'CONFIRM' || !targetId}
+                disabled={loading || confirmText !== 'ПІДТВЕРДИТИ' || !targetId}
                 className="w-full rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-red-500 disabled:opacity-60"
               >
                 {loading ? 'Передача...' : 'Підтвердити передачу'}
