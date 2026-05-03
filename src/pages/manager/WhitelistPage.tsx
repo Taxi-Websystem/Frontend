@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Pencil, Plus, Trash2, X } from 'lucide-react';
-import { api } from '../../api/axios';
+import { api, getApiErrorMessage } from '../../api/axios';
 import { getCurrentRole, getCurrentUserId } from '../../utils/auth';
 import type { AppRole } from '../../utils/auth';
-import { getRoleLabel } from '../../utils/roles';
+import { getRoleLabel, parseApiRole } from '../../utils/roles';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import FormSwitch from '../../components/FormSwitch';
 
 type WhitelistRole = AppRole;
 
@@ -32,6 +33,7 @@ export default function WhitelistPage() {
   const currentRole = getCurrentRole();
   const currentUserId = getCurrentUserId();
   const isSuperAdmin = currentRole === 'SuperAdmin';
+  const managerCannotDelete = currentRole === 'Manager';
 
   const [items, setItems] = useState<WhitelistEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +56,12 @@ export default function WhitelistPage() {
     setError('');
     try {
       const response = await api.get<WhitelistEntry[]>('/userwhitelist');
-      setItems(response.data);
+      setItems(
+        response.data.map((entry) => ({
+          ...entry,
+          role: parseApiRole(entry.role)
+        }))
+      );
     } catch {
       setError('Не вдалося завантажити whitelist.');
     } finally {
@@ -123,8 +130,8 @@ export default function WhitelistPage() {
 
       closeModal();
       await loadWhitelist();
-    } catch {
-      setError('Не вдалося зберегти запис whitelist.');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Не вдалося зберегти запис whitelist.'));
       setSaving(false);
     }
   };
@@ -133,8 +140,8 @@ export default function WhitelistPage() {
     try {
       await api.delete(`/userwhitelist/${id}`);
       await loadWhitelist();
-    } catch {
-      setError('Не вдалося видалити запис.');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Не вдалося видалити запис.'));
     }
   };
 
@@ -148,7 +155,7 @@ export default function WhitelistPage() {
         <button
           type="button"
           onClick={openCreate}
-          className="inline-flex items-center gap-2 rounded-lg bg-yellow-500 px-3 py-2 text-sm font-medium text-gray-950 transition hover:brightness-110"
+          className="inline-flex items-center gap-2 rounded-lg bg-yellow-400 px-3 py-2 text-sm font-medium text-gray-950 transition hover:brightness-110"
         >
           <Plus size={16} />
           Додати
@@ -165,7 +172,7 @@ export default function WhitelistPage() {
             <thead>
               <tr className="border-b border-gray-800 text-left text-gray-400">
                 <th className="px-3 py-2">ID</th>
-                <th className="px-3 py-2">Телефон</th>
+                <th className="px-3 py-2">Номер телефону</th>
                 <th className="px-3 py-2">Роль</th>
                 <th className="px-3 py-2">Активний</th>
                 <th className="px-3 py-2 text-right">Дії</th>
@@ -183,21 +190,22 @@ export default function WhitelistPage() {
                       <button
                         type="button"
                         onClick={() => openEdit(entry)}
-                        disabled={entry.id === currentUserId || (!isSuperAdmin && entry.role !== 'Driver')}
-                        className="rounded-md border border-gray-700 p-2 text-gray-300 transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-40"
+                        disabled={
+                          (!isSuperAdmin && entry.role !== 'Driver') ||
+                          (entry.id === currentUserId && !isSuperAdmin)
+                        }
+                        className="rounded-md border border-gray-700 p-2 text-gray-300 transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <Pencil size={14} />
                       </button>
-                      {isSuperAdmin && (
-                        <button
-                          type="button"
-                          onClick={() => setDeleteTargetId(entry.id)}
-                          disabled={entry.role === 'SuperAdmin'}
-                          className="rounded-md border border-red-500/40 p-2 text-red-300 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTargetId(entry.id)}
+                        disabled={managerCannotDelete || entry.role === 'SuperAdmin'}
+                        className="rounded-md border border-red-500/40 p-2 text-red-300 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -218,8 +226,53 @@ export default function WhitelistPage() {
             </div>
 
             <form onSubmit={saveEntry} className="space-y-3">
+              {isSuperAdmin ? (
+                editing?.role === 'SuperAdmin' ? (
+                  <label className="block text-sm text-gray-300">
+                    Роль
+                    <select
+                      value="SuperAdmin"
+                      disabled
+                      className="field-select mt-1 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <option value="SuperAdmin">{getRoleLabel('SuperAdmin')}</option>
+                    </select>
+                    <p className="mt-1 text-xs text-yellow-400">Роль Адміністратора можна тільки передати.</p>
+                  </label>
+                ) : (
+                  <label className="block text-sm text-gray-300">
+                    Роль
+                    <select
+                      value={form.role === 'SuperAdmin' ? 'Driver' : form.role}
+                      onChange={(event) =>
+                        setForm((prev) => ({ ...prev, role: event.target.value as WhitelistRole }))
+                      }
+                      className="field-select mt-1"
+                    >
+                      {roleOptions.map((role) => (
+                        <option key={role} value={role}>
+                          {getRoleLabel(role)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )
+              ) : (
+                <label className="block text-sm text-gray-300">
+                  Роль
+                  <select
+                    value="Driver"
+                    disabled
+                    className="field-select mt-1 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <option value="Driver">{getRoleLabel('Driver')}</option>
+                  </select>
+                  <p className="mt-1 text-xs text-yellow-400">Роль може змінювати лише Адміністратор.</p>
+                </label>
+              )}
+
               <label className="block text-sm text-gray-300">
-                Телефон
+                Номер телефону
                 <div className="phone-field-wrap mt-1 rounded-lg">
                   <span className="border-r border-gray-700 px-3 py-2 text-sm text-gray-300">+380</span>
                   <input
@@ -239,56 +292,16 @@ export default function WhitelistPage() {
                 </div>
               </label>
 
-              {isSuperAdmin ? (
-                <label className="block text-sm text-gray-300">
-                  Роль
-                  <select
-                    value={form.role}
-                    disabled={Boolean(editing && (editing.id === currentUserId || editing.role === 'SuperAdmin'))}
-                    onChange={(event) =>
-                      setForm((prev) => ({ ...prev, role: event.target.value as WhitelistRole }))
-                    }
-                    className="field-select mt-1 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {roleOptions.map((role) => (
-                      <option key={role} value={role}>
-                        {getRoleLabel(role)}
-                      </option>
-                    ))}
-                  </select>
-                  {editing && (editing.id === currentUserId || editing.role === 'SuperAdmin') && (
-                    <p className="mt-1 text-xs text-yellow-500">
-                      Роль цього запису змінювати не можна.
-                    </p>
-                  )}
-                </label>
-              ) : (
-                <div className="rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-300">
-                  Роль: <span className="font-medium text-white">{getRoleLabel('Driver')}</span>
-                </div>
-              )}
-
-              <label className="flex items-center justify-between rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-300">
-                Активний
-                <button
-                  type="button"
-                  onClick={() => setForm((prev) => ({ ...prev, isActive: !prev.isActive }))}
-                  className={`relative h-6 w-11 rounded-full transition-colors duration-300 ease-in-out ${
-                    form.isActive ? 'bg-yellow-500' : 'bg-gray-600'
-                  }`}
-                >
-                  <span
-                    className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-300 ease-in-out ${
-                      form.isActive ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </label>
+              <FormSwitch
+                label="Активний"
+                checked={form.isActive}
+                onChange={(next) => setForm((prev) => ({ ...prev, isActive: next }))}
+              />
 
               <button
                 type="submit"
                 disabled={saving || !isFormValid}
-                className="w-full rounded-lg bg-yellow-500 px-3 py-2 text-sm font-medium text-gray-950 transition hover:brightness-110 disabled:opacity-60"
+                className="w-full rounded-lg bg-yellow-400 px-3 py-2 text-sm font-medium text-gray-950 transition hover:brightness-110 disabled:opacity-60"
               >
                 {saving ? 'Збереження...' : 'Зберегти'}
               </button>
@@ -300,7 +313,7 @@ export default function WhitelistPage() {
       <ConfirmDialog
         open={deleteTargetId !== null}
         title="Підтвердження видалення"
-        message="Ви впевнені, що хочете видалити цей запис?"
+        message="Профіль користувача і запис у Whitelist будуть безповоротно видалені. Продовжити?"
         onCancel={() => setDeleteTargetId(null)}
         onConfirm={() => {
           const targetId = deleteTargetId;

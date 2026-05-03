@@ -1,10 +1,15 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Pencil, Plus, Trash2, X } from 'lucide-react';
-import { api } from '../../api/axios';
+import { api, getApiErrorMessage } from '../../api/axios';
+import { getCurrentRole } from '../../utils/auth';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import FormSwitch from '../../components/FormSwitch';
 import StatusPulseDot, { type StatusPulseKind } from '../../components/StatusPulseDot';
+import { sanitizeCarBrandOrModel, sanitizeCarColorUa } from '../../utils/carFields';
+import { LICENSE_PLATE_REGEX } from '../../utils/licensePlate';
+import { getRoleLabel } from '../../utils/roles';
 
-type DriverStatus = 'Offline' | 'Online' | 'InRide';
+type UserStatus = 'Offline' | 'Online' | 'InRide';
 
 interface DriverProfile {
   id: number;
@@ -13,9 +18,10 @@ interface DriverProfile {
   name: string;
   carMake?: string;
   carModel?: string;
+  carColor?: string;
   licensePlate?: string;
   role: 'Driver';
-  driverStatus?: DriverStatus | number;
+  userStatus?: UserStatus | number;
 }
 
 interface DriverFormState {
@@ -23,8 +29,10 @@ interface DriverFormState {
   name: string;
   carMake: string;
   carModel: string;
+  carColor: string;
   licensePlate: string;
-  driverStatus: DriverStatus;
+  userStatus: UserStatus;
+  profileRole: 'Driver' | 'Manager';
 }
 
 const defaultForm: DriverFormState = {
@@ -32,31 +40,31 @@ const defaultForm: DriverFormState = {
   name: '',
   carMake: '',
   carModel: '',
+  carColor: '',
   licensePlate: '',
-  driverStatus: 'Offline'
+  userStatus: 'Offline',
+  profileRole: 'Driver'
 };
 
-const statusToCode: Record<DriverStatus, number> = {
+const statusToCode: Record<UserStatus, number> = {
   Offline: 0,
   Online: 1,
   InRide: 2
 };
 
-const statusLabels: Record<DriverStatus, string> = {
+const statusLabels: Record<UserStatus, string> = {
   Online: 'Онлайн',
   InRide: 'У поїздці',
   Offline: 'Офлайн'
 };
 
-function driverStatusToPulseKind(status: DriverStatus): StatusPulseKind {
+function userStatusToPulseKind(status: UserStatus): StatusPulseKind {
   if (status === 'Online') return 'online';
   if (status === 'InRide') return 'inRide';
   return 'offline';
 }
 
-const licensePlateRegex = /^[A-Z]{2}\d{4}[A-Z]{2}$/;
-
-function normalizeStatus(input: DriverStatus | number | undefined, index: number): DriverStatus {
+function normalizeStatus(input: UserStatus | number | undefined, index: number): UserStatus {
   if (typeof input === 'string' && (input === 'Online' || input === 'InRide' || input === 'Offline')) {
     return input;
   }
@@ -66,11 +74,13 @@ function normalizeStatus(input: DriverStatus | number | undefined, index: number
     return 'Offline';
   }
 
-  // Mock fallback for now, until live statuses are integrated.
-  return (['Online', 'InRide', 'Offline'] as DriverStatus[])[index % 3];
+  return (['Online', 'InRide', 'Offline'] as UserStatus[])[index % 3];
 }
 
 export default function DriversPage() {
+  const viewerRole = getCurrentRole();
+  const canPromoteToManager = viewerRole === 'SuperAdmin';
+
   const [items, setItems] = useState<DriverProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -80,9 +90,17 @@ export default function DriversPage() {
   const [form, setForm] = useState<DriverFormState>(defaultForm);
   const [saving, setSaving] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [deleteRemoveFromWhitelist, setDeleteRemoveFromWhitelist] = useState(false);
   const isCreateMode = editing === null;
-  const hasValidLicensePlate = form.licensePlate.trim().length === 0 || licensePlateRegex.test(form.licensePlate.trim());
-  const isFormValid = form.phoneDigits.length === 9 && form.name.trim().length > 0 && hasValidLicensePlate;
+  const plateOk = LICENSE_PLATE_REGEX.test(form.licensePlate.trim());
+  const isFormValid =
+    form.phoneDigits.length === 9 &&
+    form.name.trim().length > 0 &&
+    form.carMake.trim().length > 0 &&
+    form.carModel.trim().length > 0 &&
+    form.carColor.trim().length > 0 &&
+    form.licensePlate.trim().length === 8 &&
+    plateOk;
 
   const loadDrivers = async () => {
     setLoading(true);
@@ -114,8 +132,10 @@ export default function DriversPage() {
       name: item.name,
       carMake: item.carMake ?? '',
       carModel: item.carModel ?? '',
+      carColor: item.carColor ?? '',
       licensePlate: item.licensePlate ?? '',
-      driverStatus: normalizeStatus(item.driverStatus, index)
+      userStatus: normalizeStatus(item.userStatus, index),
+      profileRole: 'Driver'
     });
     setIsModalOpen(true);
   };
@@ -145,48 +165,39 @@ export default function DriversPage() {
       name: form.name,
       carMake: form.carMake || null,
       carModel: form.carModel || null,
+      carColor: form.carColor || null,
       licensePlate: form.licensePlate || null,
-      role: 'Driver',
-      driverStatus: statusToCode[isCreateMode ? 'Offline' : form.driverStatus]
+      role: (isCreateMode ? 'Driver' : form.profileRole) as 'Driver' | 'Manager',
+      userStatus: statusToCode[isCreateMode ? 'Offline' : form.userStatus]
     };
 
     try {
       if (editing) {
         await api.put(`/drivers/${editing.id}`, { ...editing, ...payload });
-        setItems((prev) =>
-          prev.map((item) =>
-            item.id === editing.id
-              ? {
-                  ...item,
-                  phoneNumber: payload.phoneNumber,
-                  name: payload.name,
-                  carMake: form.carMake || undefined,
-                  carModel: form.carModel || undefined,
-                  licensePlate: form.licensePlate || undefined,
-                  driverStatus: form.driverStatus,
-                }
-              : item
-          )
-        );
       } else {
-        const response = await api.post<DriverProfile>('/drivers', payload);
-        setItems((prev) => [...prev, response.data]);
+        await api.post<DriverProfile>('/drivers', payload);
       }
 
       closeModal();
-    } catch {
-      setError('Не вдалося зберегти водія.');
+      await loadDrivers();
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Не вдалося зберегти водія.'));
       setSaving(false);
     }
   };
 
-  const deleteDriver = async (id: number) => {
+  const deleteDriver = async (id: number, removeFromWhitelist: boolean) => {
     try {
-      await api.delete(`/drivers/${id}`);
+      await api.delete(`/drivers/${id}`, { params: { removeFromWhitelist } });
       await loadDrivers();
-    } catch {
-      setError('Не вдалося видалити водія.');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Не вдалося видалити водія.'));
     }
+  };
+
+  const closeDeleteDialog = () => {
+    setDeleteTargetId(null);
+    setDeleteRemoveFromWhitelist(false);
   };
 
   return (
@@ -199,7 +210,7 @@ export default function DriversPage() {
         <button
           type="button"
           onClick={openCreate}
-          className="inline-flex items-center gap-2 rounded-lg bg-yellow-500 px-3 py-2 text-sm font-medium text-gray-950 transition hover:brightness-110"
+          className="inline-flex items-center gap-2 rounded-lg bg-yellow-400 px-3 py-2 text-sm font-medium text-gray-950 transition hover:brightness-110"
         >
           <Plus size={16} />
           Додати
@@ -216,28 +227,26 @@ export default function DriversPage() {
             <thead>
               <tr className="border-b border-gray-800 text-left text-gray-400">
                 <th className="px-3 py-2">ID</th>
-                <th className="px-3 py-2">Whitelist ID</th>
-                <th className="px-3 py-2">Телефон</th>
-                <th className="px-3 py-2">Ім'я</th>
                 <th className="px-3 py-2">Статус</th>
+                <th className="px-3 py-2">Ім'я</th>
+                <th className="px-3 py-2">Номер телефону</th>
                 <th className="px-3 py-2 text-right">Дії</th>
               </tr>
             </thead>
             <tbody>
               {items.map((item, index) => {
-                const status = normalizeStatus(item.driverStatus, index);
+                const status = normalizeStatus(item.userStatus, index);
                 return (
                   <tr key={item.id} className="border-b border-gray-800/60 text-gray-200">
-                    <td className="px-3 py-2">{item.id}</td>
                     <td className="px-3 py-2">{item.userId}</td>
-                    <td className="px-3 py-2">{item.phoneNumber}</td>
-                    <td className="px-3 py-2">{item.name}</td>
                     <td className="px-3 py-2">
                       <span className="inline-flex items-center gap-2 rounded-full border border-gray-700 px-2 py-1 text-xs">
-                        <StatusPulseDot kind={driverStatusToPulseKind(status)} />
+                        <StatusPulseDot kind={userStatusToPulseKind(status)} />
                         {statusLabels[status]}
                       </span>
                     </td>
+                    <td className="px-3 py-2">{item.name}</td>
+                    <td className="px-3 py-2">{item.phoneNumber}</td>
                     <td className="px-3 py-2">
                       <div className="flex items-center justify-end gap-2">
                         <button
@@ -249,7 +258,10 @@ export default function DriversPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setDeleteTargetId(item.id)}
+                          onClick={() => {
+                            setDeleteRemoveFromWhitelist(false);
+                            setDeleteTargetId(item.id);
+                          }}
                           className="rounded-md border border-red-500/40 p-2 text-red-300 transition hover:bg-red-500/10"
                         >
                           <Trash2 size={14} />
@@ -275,8 +287,52 @@ export default function DriversPage() {
             </div>
 
             <form onSubmit={saveDriver} className="space-y-3">
+              {!isCreateMode &&
+                (canPromoteToManager ? (
+                  <label className="block text-sm text-gray-300">
+                    Роль
+                    <select
+                      value={form.profileRole}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          profileRole: event.target.value as 'Driver' | 'Manager'
+                        }))
+                      }
+                      className="field-select mt-1"
+                    >
+                      <option value="Driver">{getRoleLabel('Driver')}</option>
+                      <option value="Manager">{getRoleLabel('Manager')}</option>
+                    </select>
+                  </label>
+                ) : (
+                  <label className="block text-sm text-gray-300">
+                    Роль
+                    <select
+                      value="Driver"
+                      disabled
+                      className="field-select mt-1 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <option value="Driver">{getRoleLabel('Driver')}</option>
+                    </select>
+                    <p className="mt-1 text-xs text-yellow-400">Роль може змінювати лише Адміністратор.</p>
+                  </label>
+                ))}
+
               <label className="block text-sm text-gray-300">
-                Телефон
+                Ім'я
+                <input
+                  required
+                  value={form.name}
+                  onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                  className="mt-1 field-input"
+                  placeholder="Олексій"
+                />
+                <p className="mt-1 text-xs text-yellow-400">Українською (кирилиця)</p>
+              </label>
+
+              <label className="block text-sm text-gray-300">
+                Номер телефону
                 <div className="phone-field-wrap mt-1 rounded-lg">
                   <span className="border-r border-gray-700 px-3 py-2 text-sm text-gray-300">+380</span>
                   <input
@@ -296,34 +352,57 @@ export default function DriversPage() {
                 </div>
               </label>
 
-              <label className="block text-sm text-gray-300">
-                Ім'я
-                <input
-                  required
-                  value={form.name}
-                  onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-                  className="mt-1 field-input"
-                />
-              </label>
-
               <div className="grid grid-cols-2 gap-3">
                 <label className="block text-sm text-gray-300">
                   Марка авто
                   <input
                     value={form.carMake}
-                    onChange={(event) => setForm((prev) => ({ ...prev, carMake: event.target.value }))}
+                    lang="en"
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        carMake: sanitizeCarBrandOrModel(event.target.value),
+                      }))
+                    }
                     className="mt-1 field-input"
+                    placeholder="Toyota"
                   />
+                  <p className="mt-1 text-xs text-yellow-400">Англійською (латиниця)</p>
                 </label>
                 <label className="block text-sm text-gray-300">
                   Модель авто
                   <input
                     value={form.carModel}
-                    onChange={(event) => setForm((prev) => ({ ...prev, carModel: event.target.value }))}
+                    lang="en"
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        carModel: sanitizeCarBrandOrModel(event.target.value),
+                      }))
+                    }
                     className="mt-1 field-input"
+                    placeholder="Camry"
                   />
+                  <p className="mt-1 text-xs text-yellow-400">Англійською (латиниця)</p>
                 </label>
               </div>
+
+              <label className="block text-sm text-gray-300">
+                Колір авто
+                <input
+                  value={form.carColor}
+                  lang="uk"
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      carColor: sanitizeCarColorUa(event.target.value),
+                    }))
+                  }
+                  className="mt-1 field-input"
+                  placeholder="Чорний"
+                />
+                <p className="mt-1 text-xs text-yellow-400">Українською (кирилиця)</p>
+              </label>
 
               <label className="block text-sm text-gray-300">
                 Номер авто
@@ -331,44 +410,23 @@ export default function DriversPage() {
                   value={form.licensePlate}
                   onChange={(event) => {
                     const v = event.target.value
-                      .replace(/[^A-Za-z0-9]/g, '')
-                      .toUpperCase()
+                      .replace(/[^\d\p{L}]/gu, '')
+                      .toLocaleUpperCase('uk-UA')
                       .slice(0, 8);
                     setForm((prev) => ({ ...prev, licensePlate: v }));
                   }}
                   maxLength={8}
                   inputMode="text"
                   className="mt-1 field-input"
-                  placeholder="BC9193OV"
+                  placeholder="BC9193OB"
                 />
-                {!hasValidLicensePlate && (
-                  <p className="mt-1 text-xs text-red-300">
-                    Формат латиницею: 2 літери, 4 цифри, 2 літери (наприклад BC9193OV)
-                  </p>
-                )}
+                <p className="mt-1 text-xs text-yellow-400">Формат: 2 літери, 4 цифри, 2 літери</p>
               </label>
-
-              {!isCreateMode && (
-                <label className="block text-sm text-gray-300">
-                  Статус
-                  <select
-                    value={form.driverStatus}
-                    onChange={(event) =>
-                      setForm((prev) => ({ ...prev, driverStatus: event.target.value as DriverStatus }))
-                    }
-                    className="field-select mt-1"
-                  >
-                    <option value="Offline">Офлайн</option>
-                    <option value="Online">Онлайн</option>
-                    <option value="InRide">У поїздці</option>
-                  </select>
-                </label>
-              )}
 
               <button
                 type="submit"
                 disabled={saving || !isFormValid}
-                className="w-full rounded-lg bg-yellow-500 px-3 py-2 text-sm font-medium text-gray-950 transition hover:brightness-110 disabled:opacity-60"
+                className="w-full rounded-lg bg-yellow-400 px-3 py-2 text-sm font-medium text-gray-950 transition hover:brightness-110 disabled:opacity-60"
               >
                 {saving ? 'Збереження...' : 'Зберегти'}
               </button>
@@ -380,16 +438,27 @@ export default function DriversPage() {
       <ConfirmDialog
         open={deleteTargetId !== null}
         title="Підтвердження видалення"
-        message="Ви впевнені, що хочете видалити водія?"
-        onCancel={() => setDeleteTargetId(null)}
+        message={
+          deleteRemoveFromWhitelist
+            ? 'Профіль водія і запис у Whitelist будуть безповоротно видалені. Продовжити?'
+            : 'Профіль водія буде безповоротно видалений. Запис у Whitelist залишиться. Продовжити?'
+        }
+        onCancel={closeDeleteDialog}
         onConfirm={() => {
           const targetId = deleteTargetId;
-          setDeleteTargetId(null);
+          const alsoWhitelist = deleteRemoveFromWhitelist;
+          closeDeleteDialog();
           if (targetId !== null) {
-            void deleteDriver(targetId);
+            void deleteDriver(targetId, alsoWhitelist);
           }
         }}
-      />
+      >
+        <FormSwitch
+          label="Також видалити з Whitelist"
+          checked={deleteRemoveFromWhitelist}
+          onChange={setDeleteRemoveFromWhitelist}
+        />
+      </ConfirmDialog>
     </section>
   );
 }

@@ -25,11 +25,11 @@ export default function ManagerLayout() {
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-wider text-yellow-500">Taxi 839</p>
+              <p className="text-xs uppercase tracking-wider text-yellow-400">Taxi 839</p>
               <h1 className="text-xl font-semibold">Панель керування</h1>
             </div>
             <div className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-300">
-              Роль: <span className="font-medium text-yellow-500">{role ? getRoleLabel(role) : 'Невідома'}</span>
+              Роль: <span className="font-medium text-yellow-400">{role ? getRoleLabel(role) : 'Невідома'}</span>
             </div>
           </div>
         </div>
@@ -45,7 +45,7 @@ export default function ManagerLayout() {
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
                     isActive
-                      ? 'bg-yellow-500/15 text-yellow-500'
+                      ? 'bg-yellow-400/15 text-yellow-400'
                       : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                   }`
                 }
@@ -71,7 +71,7 @@ export default function ManagerLayout() {
       </div>
 
       <footer className="border-t border-gray-800 px-4 py-4 text-center text-xs text-gray-500">
-        © 2026 Taxi 839. Всі права захищено.
+        © 2026 Taxi 839. Всі права захищені.
       </footer>
     </div>
   );

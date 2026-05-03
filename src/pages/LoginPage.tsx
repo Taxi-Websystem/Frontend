@@ -26,7 +26,7 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const data = (err as { response?: { data?: { code?: string } } })?.response?.data;
       if (data?.code === 'INACTIVE') {
-        setError('Обліковий запис деактивовано. Зверніться до адміністратора.');
+        setError('Обліковий запис деактивовано. Зверніться до підтримки.');
       } else {
         setError('Номер не зареєстрований у системі.');
       }
@@ -51,6 +51,7 @@ export default function LoginPage() {
       localStorage.setItem('token', token);
       localStorage.setItem('role', role);
       if (requiresRegistration) {
+        sessionStorage.setItem('registrationPending', 'true');
         navigate('/complete-registration', { replace: true });
       } else {
         navigate(role === 'Manager' || role === 'SuperAdmin' ? '/manager/whitelist' : '/driver/dashboard', {
@@ -69,23 +70,23 @@ export default function LoginPage() {
       {/* Left panel — branding */}
       <div className="hidden lg:flex flex-col justify-between w-1/2 bg-gray-900 border-r border-gray-800 p-12">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-500">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-400">
             <Car className="h-5 w-5 text-gray-950" />
           </div>
           <span className="text-white font-bold text-xl tracking-tight">Taxi 839</span>
         </div>
 
         <div className="space-y-5">
-          <div className="inline-flex items-center gap-2 rounded-full border border-yellow-500/20 bg-yellow-500/10 px-4 py-2">
+          <div className="inline-flex items-center gap-2 rounded-full border border-yellow-400/20 bg-yellow-400/10 px-4 py-2">
             <span className="relative inline-flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-yellow-500 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-yellow-500" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-yellow-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-yellow-400" />
             </span>
-            <span className="text-sm font-medium text-yellow-500">Онлайн</span>
+            <span className="text-sm font-medium text-yellow-400">Онлайн</span>
           </div>
           <h1 className="text-5xl font-black leading-tight tracking-tight text-white">
             Платформа для<br />
-            <span className="text-yellow-500">водіїв та менеджерів</span>
+            <span className="text-yellow-400">водіїв та менеджерів</span>
           </h1>
           <p className="text-gray-400 text-lg leading-relaxed max-w-sm">
             Таксі - це просто, зручно і надійно.
@@ -111,7 +112,7 @@ export default function LoginPage() {
 
           {/* Mobile logo */}
           <div className="flex lg:hidden items-center justify-center gap-3 mb-10">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-500">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-400">
               <Car className="h-5 w-5 text-gray-950" />
             </div>
             <span className="text-white font-bold text-xl tracking-tight">Taxi 839</span>
@@ -123,8 +124,8 @@ export default function LoginPage() {
             </h2>
             <p className="text-gray-400 mt-2 text-sm">
               {step === 'phone'
-                ? 'Введіть номер телефону, зареєстрований у системі'
-                : `Введіть код, надісланий на ${phone}`}
+                ? 'Введіть номер телефону, який зареєстровано у системі.'
+                : `Введіть код, надісланий на ${phone}.`}
             </p>
           </div>
 
@@ -132,13 +133,7 @@ export default function LoginPage() {
             <form onSubmit={handleSendCode} className="space-y-4 animate-fade-in">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-gray-300">Номер телефону</label>
-                <div
-                  className={`phone-field-wrap overflow-hidden rounded-xl ${
-                    digits.length > 0 && !isPhoneValid
-                      ? '!border-red-500/60 focus-within:!border-red-500/60 focus-within:!ring-1 focus-within:!ring-red-500/40'
-                      : ''
-                  }`}
-                >
+                <div className="phone-field-wrap overflow-hidden rounded-xl">
                   <div className="flex items-center gap-2 pl-4 pr-3 border-r border-gray-700 shrink-0">
                     <Phone className="w-4 h-4 text-gray-500" />
                     <span className="text-gray-300 text-sm font-medium">+380</span>
@@ -170,7 +165,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading || !isPhoneValid}
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-500 py-3.5 text-sm font-semibold text-gray-950 transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 py-3.5 text-sm font-semibold text-gray-950 transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -203,7 +198,7 @@ export default function LoginPage() {
                     }}
                     required
                     autoFocus
-                    className="field-input !rounded-xl py-3.5 pl-11 pr-4 font-mono tracking-[0.4em] text-center placeholder:text-gray-600"
+                    className="field-input !rounded-xl py-3.5 pl-11 pr-4 font-mono tracking-[0.4em] text-center placeholder:text-gray-500"
                   />
                 </div>
                 <p className="text-xs text-gray-500 text-center pt-1">
@@ -220,7 +215,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading || code.length !== 6}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-500 py-3.5 text-sm font-semibold text-gray-950 transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 py-3.5 text-sm font-semibold text-gray-950 transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -243,7 +238,7 @@ export default function LoginPage() {
             </form>
           )}
 
-          <p className="text-center text-gray-600 text-xs mt-10">
+          <p className="text-center text-gray-500 text-xs mt-10">
             © 2026 Taxi 839. Всі права захищені.
           </p>
         </div>
