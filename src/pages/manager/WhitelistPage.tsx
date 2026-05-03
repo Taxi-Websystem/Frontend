@@ -1,0 +1,255 @@
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { Pencil, Plus, Trash2, X } from 'lucide-react';
+import { api } from '../../api/axios';
+import { getCurrentRole } from '../../utils/auth';
+
+type WhitelistRole = 'Driver' | 'Manager' | 'SuperAdmin';
+
+interface WhitelistEntry {
+  id: number;
+  phoneNumber: string;
+  role: WhitelistRole;
+  isActive: boolean;
+  createdAt: string;
+}
+
+interface WhitelistFormState {
+  phoneNumber: string;
+  role: WhitelistRole;
+  isActive: boolean;
+}
+
+const defaultForm: WhitelistFormState = {
+  phoneNumber: '+380',
+  role: 'Driver',
+  isActive: true
+};
+
+export default function WhitelistPage() {
+  const currentRole = getCurrentRole();
+  const isSuperAdmin = currentRole === 'SuperAdmin';
+
+  const [items, setItems] = useState<WhitelistEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editing, setEditing] = useState<WhitelistEntry | null>(null);
+  const [form, setForm] = useState<WhitelistFormState>(defaultForm);
+  const [saving, setSaving] = useState(false);
+
+  const roleOptions = useMemo<WhitelistRole[]>(
+    () => (isSuperAdmin ? ['Driver', 'Manager'] : ['Driver']),
+    [isSuperAdmin]
+  );
+
+  const loadWhitelist = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await api.get<WhitelistEntry[]>('/userwhitelist');
+      setItems(response.data);
+    } catch {
+      setError('Не вдалося завантажити whitelist.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadWhitelist();
+  }, []);
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm(defaultForm);
+    setIsModalOpen(true);
+  };
+
+  const openEdit = (entry: WhitelistEntry) => {
+    setEditing(entry);
+    setForm({
+      phoneNumber: entry.phoneNumber,
+      role: isSuperAdmin ? entry.role : 'Driver',
+      isActive: entry.isActive
+    });
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditing(null);
+    setForm(defaultForm);
+    setSaving(false);
+  };
+
+  const saveEntry = async (e: FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+
+    const payload: Partial<WhitelistEntry> = {
+      phoneNumber: form.phoneNumber,
+      role: isSuperAdmin ? form.role : 'Driver',
+      isActive: form.isActive
+    };
+
+    try {
+      if (editing) {
+        await api.put(`/userwhitelist/${editing.id}`, {
+          id: editing.id,
+          createdAt: editing.createdAt,
+          ...payload
+        });
+      } else {
+        await api.post('/userwhitelist', payload);
+      }
+
+      closeModal();
+      await loadWhitelist();
+    } catch {
+      setError('Не вдалося зберегти запис whitelist.');
+      setSaving(false);
+    }
+  };
+
+  const deleteEntry = async (id: number) => {
+    if (!window.confirm('Видалити запис із whitelist?')) return;
+
+    try {
+      await api.delete(`/userwhitelist/${id}`);
+      await loadWhitelist();
+    } catch {
+      setError('Не вдалося видалити запис.');
+    }
+  };
+
+  return (
+    <section className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-white">Whitelist</h2>
+          <p className="mt-1 text-sm text-gray-400">Керування доступом за номером телефону.</p>
+        </div>
+        <button
+          type="button"
+          onClick={openCreate}
+          className="inline-flex items-center gap-2 rounded-lg bg-yellow-400 px-3 py-2 text-sm font-medium text-gray-950 transition hover:bg-yellow-300"
+        >
+          <Plus size={16} />
+          Додати
+        </button>
+      </div>
+
+      {error && <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</div>}
+
+      {loading ? (
+        <p className="text-sm text-gray-400">Завантаження...</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-800 text-left text-gray-400">
+                <th className="px-3 py-2">ID</th>
+                <th className="px-3 py-2">Телефон</th>
+                <th className="px-3 py-2">Роль</th>
+                <th className="px-3 py-2">Active</th>
+                <th className="px-3 py-2 text-right">Дії</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((entry) => (
+                <tr key={entry.id} className="border-b border-gray-800/60 text-gray-200">
+                  <td className="px-3 py-2">{entry.id}</td>
+                  <td className="px-3 py-2">{entry.phoneNumber}</td>
+                  <td className="px-3 py-2">{entry.role}</td>
+                  <td className="px-3 py-2">{entry.isActive ? 'Yes' : 'No'}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openEdit(entry)}
+                        className="rounded-md border border-gray-700 p-2 text-gray-300 transition hover:bg-gray-800"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      {isSuperAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => void deleteEntry(entry.id)}
+                          className="rounded-md border border-red-500/40 p-2 text-red-300 transition hover:bg-red-500/10"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-xl border border-gray-700 bg-gray-900 p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-white">{editing ? 'Редагувати запис' : 'Новий запис'}</h3>
+              <button type="button" onClick={closeModal} className="rounded-md p-1 text-gray-400 hover:bg-gray-800">
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={saveEntry} className="space-y-3">
+              <label className="block text-sm text-gray-300">
+                Телефон
+                <input
+                  required
+                  value={form.phoneNumber}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, phoneNumber: event.target.value }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white outline-none focus:border-yellow-400/70"
+                />
+              </label>
+
+              <label className="block text-sm text-gray-300">
+                Роль
+                <select
+                  value={form.role}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, role: event.target.value as WhitelistRole }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white outline-none focus:border-yellow-400/70"
+                >
+                  {roleOptions.map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="flex items-center gap-2 text-sm text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={form.isActive}
+                  onChange={(event) => setForm((prev) => ({ ...prev, isActive: event.target.checked }))}
+                />
+                Active
+              </label>
+
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full rounded-lg bg-yellow-400 px-3 py-2 text-sm font-medium text-gray-950 transition hover:bg-yellow-300 disabled:opacity-60"
+              >
+                {saving ? 'Збереження...' : 'Зберегти'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
