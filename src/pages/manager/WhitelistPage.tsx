@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { api, getApiErrorMessage } from '../../api/axios';
 import { getCurrentRole, getCurrentUserId } from '../../utils/auth';
 import type { AppRole } from '../../utils/auth';
 import { getRoleLabel, parseApiRole } from '../../utils/roles';
+import { DIGITS_ONLY_REGEX } from '../../utils/regex';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import FormSwitch from '../../components/FormSwitch';
+import ModalPortal from '../../components/ModalPortal';
 
 type WhitelistRole = AppRole;
 
@@ -28,6 +30,10 @@ const defaultForm: WhitelistFormState = {
   role: 'Driver',
   isActive: true
 };
+
+const pageCardClass =
+  'rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-xl sm:p-8';
+const fieldLabelClass = 'mb-1 block text-sm font-medium text-slate-300';
 
 export default function WhitelistPage() {
   const currentRole = getCurrentRole();
@@ -146,31 +152,33 @@ export default function WhitelistPage() {
   };
 
   return (
-    <section className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-      <div className="mb-4 flex items-center justify-between">
+    <section className={pageCardClass}>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-white">Whitelist</h2>
-          <p className="mt-1 text-sm text-gray-400">Керування доступом користувачів за номером телефону.</p>
+          <h2 className="text-xl font-semibold text-white">Whitelist</h2>
+          <p className="mt-1 text-sm text-slate-400">Керування доступом користувачів за номером телефону.</p>
         </div>
         <button
           type="button"
           onClick={openCreate}
-          className="inline-flex items-center gap-2 rounded-lg bg-yellow-400 px-3 py-2 text-sm font-medium text-gray-950 transition hover:brightness-110"
+          className="manager-accent-glow manager-primary-btn inline-flex items-center gap-2 rounded-full bg-[#EAB308] px-4 py-2.5 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow] duration-300 hover:brightness-105 disabled:opacity-50"
         >
           <Plus size={16} />
           Додати
         </button>
       </div>
 
-      {error && <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</div>}
+      {error && (
+        <div className="mb-4 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
+      )}
 
       {loading ? (
-        <p className="text-sm text-gray-400">Завантаження...</p>
+        <p className="text-sm text-slate-400">Завантаження...</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-800 text-left text-gray-400">
+              <tr className="border-b border-white/10 text-left text-slate-400">
                 <th className="px-3 py-2">ID</th>
                 <th className="px-3 py-2">Номер телефону</th>
                 <th className="px-3 py-2">Роль</th>
@@ -180,9 +188,9 @@ export default function WhitelistPage() {
             </thead>
             <tbody>
               {items.map((entry) => (
-                <tr key={entry.id} className="border-b border-gray-800/60 text-gray-200">
+                <tr key={entry.id} className="border-b border-white/10 text-slate-200">
                   <td className="px-3 py-2">{entry.id}</td>
-                  <td className="px-3 py-2">{entry.phoneNumber}</td>
+                  <td className="px-3 py-2 font-mono">{entry.phoneNumber}</td>
                   <td className="px-3 py-2">{getRoleLabel(entry.role)}</td>
                   <td className="px-3 py-2">{entry.isActive ? 'Так' : 'Ні'}</td>
                   <td className="px-3 py-2">
@@ -194,7 +202,7 @@ export default function WhitelistPage() {
                           (!isSuperAdmin && entry.role !== 'Driver') ||
                           (entry.id === currentUserId && !isSuperAdmin)
                         }
-                        className="rounded-md border border-gray-700 p-2 text-gray-300 transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="manager-icon-btn disabled:pointer-events-none"
                       >
                         <Pencil size={14} />
                       </button>
@@ -202,7 +210,7 @@ export default function WhitelistPage() {
                         type="button"
                         onClick={() => setDeleteTargetId(entry.id)}
                         disabled={managerCannotDelete || entry.role === 'SuperAdmin'}
-                        className="rounded-md border border-red-500/40 p-2 text-red-300 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="manager-icon-btn manager-icon-btn--danger disabled:pointer-events-none"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -216,38 +224,43 @@ export default function WhitelistPage() {
       )}
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-xl border border-gray-700 bg-gray-900 p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-white">{editing ? 'Редагувати запис' : 'Новий запис'}</h3>
-              <button type="button" onClick={closeModal} className="rounded-md p-1 text-gray-400 hover:bg-gray-800">
-                <X size={16} />
-              </button>
-            </div>
+        <ModalPortal>
+          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-hidden bg-slate-950/80 p-4 sm:p-6">
+            <div className="mx-auto max-h-[min(88dvh,36rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl border border-white/10 bg-[#0F172A] p-6 shadow-2xl ring-1 ring-white/5">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white">{editing ? 'Редагувати запис' : 'Новий запис'}</h3>
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                >
+                  <X size={16} />
+                </button>
+              </div>
 
-            <form onSubmit={saveEntry} className="space-y-3">
+              <form onSubmit={saveEntry} className="space-y-4">
               {isSuperAdmin ? (
                 editing?.role === 'SuperAdmin' ? (
-                  <label className="block text-sm text-gray-300">
+                  <label className={fieldLabelClass}>
                     Роль
                     <select
                       value="SuperAdmin"
                       disabled
-                      className="field-select mt-1 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="field-select mt-2 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <option value="SuperAdmin">{getRoleLabel('SuperAdmin')}</option>
                     </select>
-                    <p className="mt-1 text-xs text-yellow-400">Роль Адміністратора можна тільки передати.</p>
+                    <p className="mt-1 text-xs text-slate-400">Роль Адміністратора можна тільки передати.</p>
                   </label>
                 ) : (
-                  <label className="block text-sm text-gray-300">
+                  <label className={fieldLabelClass}>
                     Роль
                     <select
                       value={form.role === 'SuperAdmin' ? 'Driver' : form.role}
                       onChange={(event) =>
                         setForm((prev) => ({ ...prev, role: event.target.value as WhitelistRole }))
                       }
-                      className="field-select mt-1"
+                      className="field-select mt-2"
                     >
                       {roleOptions.map((role) => (
                         <option key={role} value={role}>
@@ -258,23 +271,23 @@ export default function WhitelistPage() {
                   </label>
                 )
               ) : (
-                <label className="block text-sm text-gray-300">
+                <label className={fieldLabelClass}>
                   Роль
                   <select
                     value="Driver"
                     disabled
-                    className="field-select mt-1 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="field-select mt-2 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <option value="Driver">{getRoleLabel('Driver')}</option>
                   </select>
-                  <p className="mt-1 text-xs text-yellow-400">Роль може змінювати лише Адміністратор.</p>
+                  <p className="mt-1 text-xs text-slate-400">Роль може змінювати лише Адміністратор.</p>
                 </label>
               )}
 
-              <label className="block text-sm text-gray-300">
+              <label className={fieldLabelClass}>
                 Номер телефону
-                <div className="phone-field-wrap mt-1 rounded-lg">
-                  <span className="border-r border-gray-700 px-3 py-2 text-sm text-gray-300">+380</span>
+                <div className="manager-field-outline mt-2 flex items-center overflow-hidden rounded-xl border border-white/10 bg-[#1E293B]">
+                  <span className="border-r border-white/10 px-4 py-2 font-mono text-sm text-slate-300">+380</span>
                   <input
                     required
                     inputMode="numeric"
@@ -283,10 +296,10 @@ export default function WhitelistPage() {
                     onChange={(event) =>
                       setForm((prev) => ({
                         ...prev,
-                        phoneDigits: event.target.value.replace(/\D/g, '').slice(0, 9)
+                        phoneDigits: event.target.value.replace(DIGITS_ONLY_REGEX, '').slice(0, 9)
                       }))
                     }
-                    className="w-full bg-transparent px-3 py-2 text-sm text-white outline-none"
+                    className="w-full bg-transparent px-4 py-2 font-mono text-sm text-white outline-none"
                     placeholder="XXXXXXXXX"
                   />
                 </div>
@@ -301,13 +314,14 @@ export default function WhitelistPage() {
               <button
                 type="submit"
                 disabled={saving || !isFormValid}
-                className="w-full rounded-lg bg-yellow-400 px-3 py-2 text-sm font-medium text-gray-950 transition hover:brightness-110 disabled:opacity-60"
+                className="manager-accent-glow manager-primary-btn mt-1 w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow] duration-300 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
-                {saving ? 'Збереження...' : 'Зберегти'}
+                {saving ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : 'Зберегти'}
               </button>
-            </form>
+              </form>
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       <ConfirmDialog

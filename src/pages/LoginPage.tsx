@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Phone, ShieldCheck, ArrowRight, Loader2, ChevronLeft, Car } from 'lucide-react';
 import { api } from '../api/axios';
+import { DIGITS_ONLY_REGEX } from '../utils/regex';
 
 type Step = 'phone' | 'otp';
 
@@ -19,7 +20,7 @@ export default function LoginPage() {
   const fieldLabelClass = 'mb-2 block text-sm font-medium text-slate-300';
   const errorBoxClass = 'rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300';
   const primaryButtonClass =
-    'login-accent-glow mt-1 flex w-full items-center justify-center gap-2 rounded-full bg-[#EAB308] py-4 text-base font-semibold text-[#0F172A] transition-[filter,opacity,box-shadow] duration-300 hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/25 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none';
+    'login-accent-glow mt-1 flex w-full items-center justify-center gap-2 rounded-full bg-[#EAB308] py-4 text-base font-semibold text-[#0F172A] transition-[filter,opacity,box-shadow] duration-300 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none';
   const statCardClass =
     'rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl backdrop-blur-xl sm:p-5';
 
@@ -74,7 +75,6 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#0F172A] lg:flex">
-      {/* Один спільний фон для обох половин — без «розділювальної» зони */}
       <div
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_85%_65%_at_78%_45%,rgba(234,179,8,0.11),transparent_58%),radial-gradient(ellipse_100%_80%_at_50%_100%,rgba(15,23,42,0.4),transparent_55%)]"
         aria-hidden
@@ -112,7 +112,7 @@ export default function LoginPage() {
                       placeholder="XXXXXXXXX"
                       value={digits}
                       onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, '');
+                        const val = e.target.value.replace(DIGITS_ONLY_REGEX, '');
                         if (val.length <= 9) {
                           setDigits(val);
                           if (val.length === 0) setError('');
@@ -154,7 +154,7 @@ export default function LoginPage() {
                       maxLength={6}
                       value={code}
                       onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, '');
+                        const val = e.target.value.replace(DIGITS_ONLY_REGEX, '');
                         setCode(val);
                         if (val.length === 0) setError('');
                       }}
@@ -200,11 +200,11 @@ export default function LoginPage() {
           <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-5 sm:gap-4">
             <div className={statCardClass}>
               <p className="text-2xl font-bold tabular-nums text-white">—</p>
-              <p className="mt-1 text-xs leading-snug text-slate-400 sm:text-sm">Водіїв онлайн</p>
+              <p className="mt-1 text-xs leading-snug text-slate-400 sm:text-sm">Онлайн водіїв</p>
             </div>
             <div className={statCardClass}>
               <p className="text-2xl font-bold tabular-nums text-white">—</p>
-              <p className="mt-1 text-xs leading-snug text-slate-400 sm:text-sm">Поїздок сьогодні</p>
+              <p className="mt-1 text-xs leading-snug text-slate-400 sm:text-sm">Сьогодні поїздок</p>
             </div>
           </div>
 
@@ -214,7 +214,6 @@ export default function LoginPage() {
 
       <div className="relative z-[1] hidden min-h-screen w-1/2 flex-col overflow-hidden lg:flex">
         <div className="relative flex min-h-0 flex-1 items-center justify-center p-6 sm:p-10">
-          {/* Таксі по центру правої половини; лінії — поверх; підсвітка — під іконкою */}
           <div className="relative aspect-square w-full max-w-lg min-h-[280px] max-h-[min(72vh,520px)]">
             <div
               className="login-taxi-glow pointer-events-none absolute left-1/2 top-1/2 h-[125%] w-[125%] rounded-full bg-[radial-gradient(circle,rgba(234,179,8,0.5)_0%,rgba(234,179,8,0.16)_40%,transparent_72%)] blur-3xl"

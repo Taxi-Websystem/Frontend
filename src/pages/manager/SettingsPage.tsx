@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, Loader2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/axios';
 import { parseApiRole } from '../../utils/roles';
 import { getCurrentRole, getCurrentUserId } from '../../utils/auth';
+import ModalPortal from '../../components/ModalPortal';
 
 interface ManagerOption {
   id: number;
@@ -76,28 +77,38 @@ export default function SettingsPage() {
     }
   };
 
-  return (
-    <section className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-      <h2 className="text-lg font-semibold text-white">Налаштування</h2>
-      <p className="mt-2 text-sm text-gray-400">Системні параметри панелі керування.</p>
+  const pageCardClass =
+    'rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-xl sm:p-8';
+  const fieldLabelClass = 'mb-1 block text-sm font-medium text-slate-300';
 
-      {error && <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</div>}
-      {success && <div className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">{success}</div>}
+  return (
+    <section className={pageCardClass}>
+      <h2 className="text-xl font-semibold text-white">Налаштування</h2>
+      <p className="mt-2 text-sm text-slate-400">Системні параметри панелі керування.</p>
+
+      {error && (
+        <div className="mt-4 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
+      )}
+      {success && (
+        <div className="mt-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+          {success}
+        </div>
+      )}
 
       {isSuperAdmin && (
         <>
-          <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/5 p-4">
+          <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="mt-0.5 text-red-400" size={18} />
+              <AlertTriangle className="mt-0.5 text-[#EAB308]" size={18} />
               <div>
-                <h3 className="text-sm font-semibold text-red-300">Передати роль Адміністратора</h3>
-                <p className="mt-1 text-sm text-red-200/80">
+                <h3 className="text-sm font-semibold text-white">Передати роль Адміністратора</h3>
+                <p className="mt-1 text-sm text-slate-300">
                   Незворотна дія: роль Адміністратора буде змінена на Менеджера.
                 </p>
                 <button
                   type="button"
                   onClick={() => setIsTransferOpen(true)}
-                  className="mt-3 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-red-500"
+                  className="manager-accent-glow manager-primary-btn mt-3 rounded-full bg-[#EAB308] px-4 py-2 text-sm font-semibold text-[#0F172A] transition hover:brightness-105"
                 >
                   Розпочати процедуру
                 </button>
@@ -106,27 +117,32 @@ export default function SettingsPage() {
           </div>
 
           {isTransferOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-              <div className="w-full max-w-lg rounded-xl border border-red-500/40 bg-gray-900 p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-white">Передати роль Адміністратора</h3>
-                  <button type="button" onClick={closeTransferModal} className="rounded-md p-1 text-gray-400 hover:bg-gray-800">
-                    <X size={16} />
-                  </button>
+            <ModalPortal>
+              <div className="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-hidden bg-slate-950/80 p-4 sm:p-6">
+                <div className="mx-auto max-h-[min(88dvh,36rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl border border-white/10 bg-[#0F172A] p-6 shadow-2xl ring-1 ring-white/5">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-white">Передати роль Адміністратора</h3>
+                    <button
+                      type="button"
+                      onClick={closeTransferModal}
+                      className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+
+                <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-slate-300">
+                  Оберіть менеджера й введіть <span className="font-semibold text-[#EAB308]">ПІДТВЕРДИТИ</span>.
                 </div>
 
-                <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
-                  Оберіть менеджера й введіть <span className="font-semibold text-red-100">ПІДТВЕРДИТИ</span>.
-                </div>
-
-                <form onSubmit={transferSuperAdmin} className="space-y-3">
-                  <label className="block text-sm text-gray-300">
+                  <form onSubmit={transferSuperAdmin} className="space-y-4">
+                  <label className={fieldLabelClass}>
                     Цільовий менеджер
                     <select
                       required
                       value={targetId}
                       onChange={(event) => setTargetId(event.target.value)}
-                      className="field-select mt-1"
+                      className="field-select mt-2 font-mono"
                     >
                       <option value="">Оберіть менеджера</option>
                       {managers
@@ -139,26 +155,27 @@ export default function SettingsPage() {
                     </select>
                   </label>
 
-                  <label className="block text-sm text-gray-300">
+                  <label className={fieldLabelClass}>
                     Введіть "ПІДТВЕРДИТИ"
                     <input
                       required
                       value={confirmText}
                       onChange={(event) => setConfirmText(event.target.value)}
-                      className="mt-1 field-input"
+                      className="mt-2 field-input"
                     />
                   </label>
 
                   <button
                     type="submit"
                     disabled={loading || confirmText !== 'ПІДТВЕРДИТИ' || !targetId}
-                    className="w-full rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-red-500 disabled:opacity-60"
+                    className="manager-accent-glow manager-primary-btn w-full rounded-full bg-[#EAB308] px-4 py-2.5 text-sm font-semibold text-[#0F172A] transition hover:brightness-105 disabled:opacity-60"
                   >
-                    {loading ? 'Підтвердження...' : 'Підтвердити дію'}
+                    {loading ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : 'Підтвердити дію'}
                   </button>
-                </form>
+                  </form>
+                </div>
               </div>
-            </div>
+            </ModalPortal>
           )}
         </>
       )}

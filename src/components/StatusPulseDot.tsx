@@ -12,7 +12,6 @@ const solid: Record<StatusPulseKind, string> = {
   inRide: 'bg-sky-500',
 };
 
-/** Пульсуюча крапка: зовнішній animate-ping + внутрішній статичний колір */
 export default function StatusPulseDot({ kind }: { kind: StatusPulseKind }) {
   return (
     <span className="relative inline-flex h-2 w-2 shrink-0">

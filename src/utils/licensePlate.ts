@@ -1,5 +1,34 @@
-/**
- * 2 літери (латиниця та/або кирилиця) + 4 цифри + 2 літери, усього 8 символів.
- * \p{L} — будь-яка літера в Unicode.
- */
-export const LICENSE_PLATE_REGEX = /^[\p{L}]{2}\d{4}[\p{L}]{2}$/u;
+import { DIGIT_ONLY_CHAR_REGEX, LETTER_ONLY_REGEX, LICENSE_PLATE_UA_REGEX } from './regex';
+
+export const LICENSE_PLATE_REGEX = LICENSE_PLATE_UA_REGEX;
+
+export function formatLicensePlateInput(value: string): string {
+  const chars = Array.from(value.toLocaleUpperCase('uk-UA'));
+  let formatted = '';
+
+  for (const char of chars) {
+    if (formatted.length < 2) {
+      if (LETTER_ONLY_REGEX.test(char)) {
+        formatted += char;
+      }
+      continue;
+    }
+
+    if (formatted.length < 6) {
+      if (DIGIT_ONLY_CHAR_REGEX.test(char)) {
+        formatted += char;
+      }
+      continue;
+    }
+
+    if (formatted.length < 8) {
+      if (LETTER_ONLY_REGEX.test(char)) {
+        formatted += char;
+      }
+    }
+
+    if (formatted.length === 8) break;
+  }
+
+  return formatted;
+}

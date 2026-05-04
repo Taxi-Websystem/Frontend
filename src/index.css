@@ -34,26 +34,62 @@
   select:focus-visible {
     outline: none;
   }
+
+  button:focus,
+  button:focus-visible {
+    outline: none;
+  }
 }
 
 @layer components {
   .phone-field-wrap {
-    @apply flex items-center border border-gray-700 bg-gray-950 transition-shadow;
-    @apply focus-within:border-yellow-400/80 focus-within:ring-1 focus-within:ring-yellow-400;
+    @apply flex items-center rounded-xl border border-white/10 bg-[#1E293B];
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .phone-field-wrap:focus-within {
+    border-color: rgba(234, 179, 8, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.78),
+      0 12px 40px rgba(234, 179, 8, 0.32);
   }
 
   .field-input {
-    @apply w-full rounded-lg border border-gray-700 bg-gray-950 px-4 py-2 text-sm text-white transition-shadow;
-    @apply focus:border-yellow-400/80 focus:outline-none focus:ring-1 focus:ring-yellow-400;
+    @apply w-full rounded-xl border border-white/10 bg-[#1E293B] px-4 py-2 text-sm text-white;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.3s ease;
   }
 
-  /* Симетричні px-4, кастомна стрілка справа (pr-10) — баланс тексту та chevron */
+  .field-input:focus,
+  .field-input:focus-visible {
+    outline: none;
+    border-color: rgba(234, 179, 8, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.78),
+      0 12px 40px rgba(234, 179, 8, 0.32);
+  }
+
   .field-select {
-    @apply w-full appearance-none rounded-lg border border-gray-700 bg-gray-950 bg-no-repeat py-2 pl-4 pr-10 text-sm text-white transition-shadow;
-    @apply focus:border-yellow-400/80 focus:outline-none focus:ring-1 focus:ring-yellow-400;
+    @apply w-full appearance-none rounded-xl border border-white/10 bg-[#1E293B] bg-no-repeat py-2 pl-4 pr-10 text-sm text-white;
+    color-scheme: dark;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.3s ease;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
     background-position: right 0.75rem center;
     background-size: 1rem 1rem;
+  }
+
+  .field-select:focus,
+  .field-select:focus-visible {
+    outline: none;
+    border-color: rgba(234, 179, 8, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.78),
+      0 12px 40px rgba(234, 179, 8, 0.32);
   }
 
   .field-select:disabled {
@@ -61,13 +97,21 @@
   }
 
   .field-select option {
-    @apply bg-gray-950 text-white;
+    @apply bg-[#0F172A] text-white;
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
   }
 
-  /*
-   * Безшовний цикл: зміщення кратне (dash + gap) для кожної лінії, щоб не було «дьоргання»
-   * при infinite: 56|40|70 → НСК = 2800
-   */
+  .field-select option:checked {
+    background: #1e293b linear-gradient(0deg, #1e293b 0%, #1e293b 100%);
+    color: #eab308;
+  }
+
+  .field-select option:hover {
+    background: #1e293b linear-gradient(0deg, #1e293b 0%, #1e293b 100%);
+    color: #f8fafc;
+  }
+
   @keyframes login-route-march-seamless {
     from {
       stroke-dashoffset: 0;
@@ -103,18 +147,14 @@
     opacity: 0.38;
   }
 
-  /* Базова підсвітка кнопки / логотипу */
   .login-accent-glow {
-    box-shadow:
-      0 0 0 1px rgba(234, 179, 8, 0.28),
-      0 10px 36px rgba(234, 179, 8, 0.14);
+    box-shadow: none;
   }
 
   .login-field-outline {
     transition: box-shadow 0.3s ease;
   }
 
-  /* Активне поле — трохи яскравіше; те саме на hover/focus кнопки */
   .login-field-outline:focus-within {
     box-shadow:
       0 0 0 1px rgba(234, 179, 8, 0.78),
@@ -128,7 +168,6 @@
       0 12px 40px rgba(234, 179, 8, 0.32);
   }
 
-  /* LoginPage — жовта підсвітка під силуетом таксі, плавний рух по діагоналі (низ-ліво → верх-право) */
   @keyframes login-taxi-glow-drift {
     0%,
     100% {
@@ -144,5 +183,124 @@
   .login-taxi-glow {
     animation: login-taxi-glow-drift 22s ease-in-out infinite;
     will-change: transform, opacity;
+  }
+
+  .manager-accent-glow {
+    box-shadow: none;
+  }
+
+  .manager-accent-glow:hover:not(:disabled),
+  .manager-accent-glow:focus-visible:not(:disabled) {
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.78),
+      0 12px 40px rgba(234, 179, 8, 0.32);
+  }
+
+  .manager-primary-btn {
+    border: 1px solid transparent;
+    box-shadow: none;
+  }
+
+  .manager-primary-btn:hover:not(:disabled),
+  .manager-primary-btn:focus-visible:not(:disabled) {
+    filter: none;
+    border-color: rgba(234, 179, 8, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.78),
+      0 12px 40px rgba(234, 179, 8, 0.32);
+  }
+
+  .manager-field-outline {
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .manager-field-outline:focus-within {
+    border-color: rgba(234, 179, 8, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.78),
+      0 12px 40px rgba(234, 179, 8, 0.32);
+  }
+
+  .manager-icon-btn {
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 0.5rem;
+    color: rgb(203 213 225);
+    box-shadow: none;
+    transition:
+      color 0.2s ease,
+      border-color 0.2s ease,
+      background-color 0.2s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .manager-icon-btn:hover:not(:disabled),
+  .manager-icon-btn:focus-visible:not(:disabled) {
+    color: #eab308;
+    border-color: rgba(234, 179, 8, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.78),
+      0 12px 40px rgba(234, 179, 8, 0.32);
+  }
+
+  .manager-icon-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  .manager-icon-btn--danger {
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgb(203 213 225);
+    background-color: rgba(255, 255, 255, 0.05);
+    box-shadow: none;
+  }
+
+  .manager-icon-btn--danger:hover:not(:disabled),
+  .manager-icon-btn--danger:focus-visible:not(:disabled) {
+    color: rgb(254 202 202);
+    border-color: rgba(239, 68, 68, 0.78);
+    background-color: rgba(239, 68, 68, 0.18);
+    box-shadow:
+      0 0 0 1px rgba(248, 113, 113, 0.78),
+      0 12px 40px rgba(239, 68, 68, 0.32);
+  }
+
+  .manager-status-chip {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.05);
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .manager-status-chip--interactive {
+    cursor: default;
+  }
+
+  .manager-status-chip--interactive[data-status='online']:hover,
+  .manager-status-chip--interactive[data-status='online']:focus-visible {
+    border-color: rgba(16, 185, 129, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(16, 185, 129, 0.78),
+      0 12px 40px rgba(16, 185, 129, 0.32);
+  }
+
+  .manager-status-chip--interactive[data-status='inRide']:hover,
+  .manager-status-chip--interactive[data-status='inRide']:focus-visible {
+    border-color: rgba(14, 165, 233, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(14, 165, 233, 0.78),
+      0 12px 40px rgba(14, 165, 233, 0.32);
+  }
+
+  .manager-status-chip--interactive[data-status='offline']:hover,
+  .manager-status-chip--interactive[data-status='offline']:focus-visible {
+    border-color: rgba(156, 163, 175, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(156, 163, 175, 0.78),
+      0 12px 40px rgba(107, 114, 128, 0.28);
   }
 }

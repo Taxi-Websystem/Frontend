@@ -1,13 +1,34 @@
-/** Марка та модель: лише латиниця (англійська), цифри, пробіл і дефіс */
-const NON_LATIN_CAR = /[^A-Za-z0-9\s\-]/g;
-
-/** Колір: лише кирилиця та пробіли */
-const NON_CYRILLIC_COLOR = /[^\p{sc=Cyrillic}\s]/gu;
+import { LETTER_ONLY_REGEX, NON_CYRILLIC_COLOR_REGEX, NON_LATIN_CAR_REGEX } from './regex';
 
 export function sanitizeCarBrandOrModel(value: string): string {
-  return value.replace(NON_LATIN_CAR, '');
+  const sanitized = value.replace(NON_LATIN_CAR_REGEX, '');
+  if (!sanitized) return '';
+  return sanitized.charAt(0).toLocaleUpperCase('en-US') + sanitized.slice(1);
 }
 
 export function sanitizeCarColorUa(value: string): string {
-  return value.replace(NON_CYRILLIC_COLOR, '');
+  const sanitized = value.replace(NON_CYRILLIC_COLOR_REGEX, '');
+  if (!sanitized) return '';
+
+  const lowered = sanitized.toLocaleLowerCase('uk-UA');
+  let shouldCapitalize = true;
+  let result = '';
+
+  for (const char of lowered) {
+    const isLetter = LETTER_ONLY_REGEX.test(char);
+    if (isLetter && shouldCapitalize) {
+      result += char.toLocaleUpperCase('uk-UA');
+      shouldCapitalize = false;
+      continue;
+    }
+
+    result += char;
+    if (char === '-') {
+      shouldCapitalize = true;
+    } else if (isLetter) {
+      shouldCapitalize = false;
+    }
+  }
+
+  return result;
 }
