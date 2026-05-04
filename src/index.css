@@ -63,4 +63,86 @@
   .field-select option {
     @apply bg-gray-950 text-white;
   }
+
+  /*
+   * Безшовний цикл: зміщення кратне (dash + gap) для кожної лінії, щоб не було «дьоргання»
+   * при infinite: 56|40|70 → НСК = 2800
+   */
+  @keyframes login-route-march-seamless {
+    from {
+      stroke-dashoffset: 0;
+    }
+    to {
+      stroke-dashoffset: -2800;
+    }
+  }
+
+  .login-route-line {
+    fill: none;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .login-route-line--a {
+    stroke-dasharray: 32 24;
+    animation: login-route-march-seamless 28s linear infinite;
+    opacity: 0.55;
+  }
+
+  .login-route-line--b {
+    stroke-dasharray: 22 18;
+    animation: login-route-march-seamless 36s linear infinite;
+    animation-delay: -6s;
+    opacity: 0.42;
+  }
+
+  .login-route-line--c {
+    stroke-dasharray: 40 30;
+    animation: login-route-march-seamless 48s linear infinite;
+    animation-delay: -12s;
+    opacity: 0.38;
+  }
+
+  /* Базова підсвітка кнопки / логотипу */
+  .login-accent-glow {
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.28),
+      0 10px 36px rgba(234, 179, 8, 0.14);
+  }
+
+  .login-field-outline {
+    transition: box-shadow 0.3s ease;
+  }
+
+  /* Активне поле — трохи яскравіше; те саме на hover/focus кнопки */
+  .login-field-outline:focus-within {
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.78),
+      0 12px 40px rgba(234, 179, 8, 0.32);
+  }
+
+  .login-accent-glow:hover:not(:disabled),
+  .login-accent-glow:focus-visible:not(:disabled) {
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.78),
+      0 12px 40px rgba(234, 179, 8, 0.32);
+  }
+
+  /* LoginPage — жовта підсвітка під силуетом таксі, плавний рух по діагоналі (низ-ліво → верх-право) */
+  @keyframes login-taxi-glow-drift {
+    0%,
+    100% {
+      transform: translate(-50%, -50%) translate(-34%, 30%) scale(1);
+      opacity: 0.4;
+    }
+    50% {
+      transform: translate(-50%, -50%) translate(32%, -34%) scale(1.14);
+      opacity: 0.72;
+    }
+  }
+
+  .login-taxi-glow {
+    animation: login-taxi-glow-drift 22s ease-in-out infinite;
+    will-change: transform, opacity;
+  }
 }
