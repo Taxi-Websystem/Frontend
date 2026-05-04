@@ -160,7 +160,7 @@ export default function LoginPage() {
                       }}
                       required
                       autoFocus
-                      className="w-full bg-transparent py-4 pl-11 pr-4 text-center font-mono text-lg tracking-[0.35em] text-white outline-none placeholder:text-slate-500"
+                      className="w-full bg-transparent py-4 pl-11 pr-11 text-center font-mono text-lg tabular-nums tracking-[0.2em] text-white outline-none placeholder:text-slate-500"
                     />
                   </div>
                 </div>

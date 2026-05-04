@@ -334,7 +334,7 @@ export default function DriversPage() {
         <button
           type="button"
           onClick={openCreate}
-          className="manager-accent-glow manager-primary-btn inline-flex items-center gap-2 rounded-full bg-[#EAB308] px-4 py-2.5 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow] duration-300 hover:brightness-105"
+          className="manager-accent-glow manager-primary-btn inline-flex items-center gap-2 rounded-full bg-[#EAB308] px-4 py-2.5 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow] duration-300"
         >
           <Plus size={16} />
           Додати
@@ -655,7 +655,7 @@ export default function DriversPage() {
               <button
                 type="submit"
                 disabled={saving || !isFormValid}
-                className="manager-accent-glow manager-primary-btn mt-1 w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow] duration-300 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                className="manager-accent-glow manager-primary-btn mt-1 w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
                 {saving ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : 'Зберегти'}
               </button>

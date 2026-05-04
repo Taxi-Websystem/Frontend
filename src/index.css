@@ -152,10 +152,13 @@
   }
 
   .login-field-outline {
-    transition: box-shadow 0.3s ease;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.3s ease;
   }
 
   .login-field-outline:focus-within {
+    border-color: rgba(234, 179, 8, 0.78);
     box-shadow:
       0 0 0 1px rgba(234, 179, 8, 0.78),
       0 12px 40px rgba(234, 179, 8, 0.32);

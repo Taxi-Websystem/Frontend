@@ -108,7 +108,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setIsTransferOpen(true)}
-                  className="manager-accent-glow manager-primary-btn mt-3 rounded-full bg-[#EAB308] px-4 py-2 text-sm font-semibold text-[#0F172A] transition hover:brightness-105"
+                  className="manager-accent-glow manager-primary-btn mt-3 rounded-full bg-[#EAB308] px-4 py-2 text-sm font-semibold text-[#0F172A] transition"
                 >
                   Розпочати процедуру
                 </button>
@@ -156,7 +156,7 @@ export default function SettingsPage() {
                   </label>
 
                   <label className={fieldLabelClass}>
-                    Введіть "ПІДТВЕРДИТИ"
+                    Введіть "<span className="font-semibold text-[#EAB308]">ПІДТВЕРДИТИ</span>"
                     <input
                       required
                       value={confirmText}
@@ -168,7 +168,7 @@ export default function SettingsPage() {
                   <button
                     type="submit"
                     disabled={loading || confirmText !== 'ПІДТВЕРДИТИ' || !targetId}
-                    className="manager-accent-glow manager-primary-btn w-full rounded-full bg-[#EAB308] px-4 py-2.5 text-sm font-semibold text-[#0F172A] transition hover:brightness-105 disabled:opacity-60"
+                    className="manager-accent-glow manager-primary-btn w-full rounded-full bg-[#EAB308] px-4 py-2.5 text-sm font-semibold text-[#0F172A] transition disabled:opacity-60"
                   >
                     {loading ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : 'Підтвердити дію'}
                   </button>

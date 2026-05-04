@@ -31,7 +31,7 @@ export default function ManagerLayout() {
             <button
               type="button"
               onClick={handleLogoClick}
-              className="manager-accent-glow manager-primary-btn flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#EAB308] transition-[filter,box-shadow] duration-300 hover:brightness-105"
+              className="manager-accent-glow manager-primary-btn flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#EAB308] transition-[filter,box-shadow] duration-300"
               aria-label="Перейти на сторінку входу"
             >
               <Car className="h-6 w-6 text-[#0F172A]" />
