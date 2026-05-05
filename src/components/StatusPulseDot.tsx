@@ -1,15 +1,19 @@
-export type StatusPulseKind = 'online' | 'offline' | 'inRide';
+export type StatusPulseKind = 'online' | 'offline' | 'inRide' | 'created' | 'accepted';
 
 const ping: Record<StatusPulseKind, string> = {
   online: 'bg-emerald-400',
   offline: 'bg-gray-400',
   inRide: 'bg-sky-400',
+  created: 'bg-yellow-400',
+  accepted: 'bg-violet-400',
 };
 
 const solid: Record<StatusPulseKind, string> = {
   online: 'bg-emerald-500',
   offline: 'bg-gray-500',
   inRide: 'bg-sky-500',
+  created: 'bg-yellow-500',
+  accepted: 'bg-violet-500',
 };
 
 export default function StatusPulseDot({ kind }: { kind: StatusPulseKind }) {

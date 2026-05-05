@@ -9,13 +9,17 @@ interface FormSwitchProps {
 export default function FormSwitch({ label, checked, onChange, disabled, description }: FormSwitchProps) {
   return (
     <div className="space-y-1">
-      <label className="manager-field-outline flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#1E293B]/80 px-3 py-2.5 text-sm text-slate-300">
-        <span className={disabled ? 'opacity-50' : undefined}>{label}</span>
+      <label
+        className={`manager-field-outline flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#1E293B] px-4 py-2 text-sm text-slate-300 ${
+          disabled ? 'cursor-not-allowed opacity-60' : ''
+        }`}
+      >
+        <span className="text-white">{label}</span>
         <button
           type="button"
           disabled={disabled}
           onClick={() => onChange(!checked)}
-          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-300 ease-in-out disabled:cursor-not-allowed disabled:opacity-50 ${
+          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-300 ease-in-out disabled:cursor-not-allowed ${
             checked ? 'bg-[#EAB308]' : 'bg-slate-600'
           }`}
           aria-pressed={checked}

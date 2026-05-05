@@ -9,13 +9,7 @@ import StatusPulseDot, { type StatusPulseKind } from '../../components/StatusPul
 import { sanitizeCarBrandOrModel, sanitizeCarColorUa } from '../../utils/carFields';
 import { formatLicensePlateInput, LICENSE_PLATE_REGEX } from '../../utils/licensePlate';
 import { sanitizeNameUa } from '../../utils/nameFields';
-import {
-  DIGITS_ONLY_REGEX,
-  RATING_1_TO_5_DECIMAL_REGEX,
-  RATING_ALLOWED_CHARS_REGEX,
-  RATING_DUPLICATED_SEPARATOR_REGEX,
-  RATING_EDITABLE_REGEX
-} from '../../utils/regex';
+import { DIGITS_ONLY_REGEX } from '../../utils/regex';
 import { getRoleLabel } from '../../utils/roles';
 
 type UserStatus = 'Offline' | 'Online' | 'InRide';
@@ -44,8 +38,6 @@ interface DriverFormState {
   licensePlate: string;
   userStatus: UserStatus;
   profileRole: 'Driver' | 'Manager';
-  tripCountInput: string;
-  averageRatingInput: string;
 }
 
 const defaultForm: DriverFormState = {
@@ -56,9 +48,7 @@ const defaultForm: DriverFormState = {
   carColor: '',
   licensePlate: '',
   userStatus: 'Offline',
-  profileRole: 'Driver',
-  tripCountInput: '0',
-  averageRatingInput: ''
+  profileRole: 'Driver'
 };
 
 const pageCardClass =
@@ -73,7 +63,7 @@ const statusToCode: Record<UserStatus, number> = {
 
 const statusLabels: Record<UserStatus, string> = {
   Online: 'Онлайн',
-  InRide: 'У поїздці',
+  InRide: 'У дорозі',
   Offline: 'Офлайн'
 };
 
@@ -101,23 +91,6 @@ function formatRating(value: number | null | undefined): string {
   return Number(value).toFixed(2);
 }
 
-function sanitizeRatingInput(nextValue: string, currentValue: string): string {
-  const sanitized = nextValue
-    .replace(RATING_ALLOWED_CHARS_REGEX, '')
-    .replace(RATING_DUPLICATED_SEPARATOR_REGEX, '$1$2')
-    .slice(0, 4);
-
-  if (!sanitized) return '';
-  if (!RATING_EDITABLE_REGEX.test(sanitized)) return currentValue;
-
-  const normalized = sanitized.replace(',', '.');
-  const forNumber = normalized.endsWith('.') ? normalized.slice(0, -1) : normalized;
-  const numeric = Number(forNumber);
-  if (!Number.isNaN(numeric) && numeric > 5) return currentValue;
-
-  return sanitized;
-}
-
 export default function DriversPage() {
   const viewerRole = getCurrentRole();
   const canPromoteToManager = viewerRole === 'SuperAdmin';
@@ -134,11 +107,6 @@ export default function DriversPage() {
   const [deleteRemoveFromWhitelist, setDeleteRemoveFromWhitelist] = useState(false);
   const isCreateMode = editing === null;
   const plateOk = LICENSE_PLATE_REGEX.test(form.licensePlate.trim());
-  const ratingRaw = form.averageRatingInput.trim();
-  const isAverageRatingValid =
-    !canPromoteToManager ||
-    ratingRaw.length === 0 ||
-    RATING_1_TO_5_DECIMAL_REGEX.test(ratingRaw);
   const isFormValid =
     form.phoneDigits.length === 9 &&
     form.name.trim().length > 0 &&
@@ -146,8 +114,7 @@ export default function DriversPage() {
     form.carModel.trim().length > 0 &&
     form.carColor.trim().length > 0 &&
     form.licensePlate.trim().length === 8 &&
-    plateOk &&
-    isAverageRatingValid;
+    plateOk;
 
   const stats = useMemo(() => {
     let active = 0;
@@ -188,9 +155,7 @@ export default function DriversPage() {
   const openCreate = () => {
     setEditing(null);
     setForm({
-      ...defaultForm,
-      tripCountInput: canPromoteToManager ? '0' : '0',
-      averageRatingInput: ''
+      ...defaultForm
     });
     setIsModalOpen(true);
   };
@@ -205,9 +170,7 @@ export default function DriversPage() {
       carColor: sanitizeCarColorUa(item.carColor ?? ''),
       licensePlate: formatLicensePlateInput(item.licensePlate ?? ''),
       userStatus: normalizeStatus(item.userStatus, index),
-      profileRole: 'Driver',
-      tripCountInput: String(item.tripCount ?? 0),
-      averageRatingInput: item.averageRating != null ? String(item.averageRating) : ''
+      profileRole: 'Driver'
     });
     setIsModalOpen(true);
   };
@@ -217,23 +180,6 @@ export default function DriversPage() {
     setEditing(null);
     setForm(defaultForm);
     setSaving(false);
-  };
-
-  const parseDashboardInputs = (): { tripCount: number; averageRating: number | null } | null => {
-    const tripCount = Math.max(0, parseInt(form.tripCountInput.replace(DIGITS_ONLY_REGEX, ''), 10) || 0);
-    if (!canPromoteToManager) return { tripCount: 0, averageRating: null };
-    const raw = form.averageRatingInput.trim();
-    if (!raw) return { tripCount, averageRating: null };
-    const n = Number(raw.replace(',', '.'));
-    if (Number.isNaN(n)) {
-      setError('Некоректне значення середнього рейтингу.');
-      return null;
-    }
-    if (!RATING_1_TO_5_DECIMAL_REGEX.test(raw) || n < 1 || n > 5) {
-      setError('Рейтинг має бути від 1 до 5 або порожнім.');
-      return null;
-    }
-    return { tripCount, averageRating: n };
   };
 
   const saveDriver = async (e: FormEvent) => {
@@ -249,12 +195,6 @@ export default function DriversPage() {
       return;
     }
 
-    const parsedStats = parseDashboardInputs();
-    if (!parsedStats) {
-      setSaving(false);
-      return;
-    }
-
     const phoneNumber = `+380${form.phoneDigits}`;
 
     const payload = {
@@ -265,9 +205,7 @@ export default function DriversPage() {
       carColor: form.carColor || null,
       licensePlate: form.licensePlate || null,
       role: (isCreateMode ? 'Driver' : form.profileRole) as 'Driver' | 'Manager',
-      userStatus: statusToCode[isCreateMode ? 'Offline' : form.userStatus],
-      tripCount: parsedStats.tripCount,
-      averageRating: parsedStats.averageRating
+      userStatus: statusToCode[isCreateMode ? 'Online' : form.userStatus]
     };
 
     try {
@@ -282,9 +220,7 @@ export default function DriversPage() {
           carColor: payload.carColor,
           licensePlate: payload.licensePlate,
           role: 'Driver',
-          userStatus: 0,
-          tripCount: canPromoteToManager ? parsedStats.tripCount : 0,
-          averageRating: canPromoteToManager ? parsedStats.averageRating : null
+          userStatus: 1
         });
       }
 
@@ -310,14 +246,14 @@ export default function DriversPage() {
     setDeleteRemoveFromWhitelist(false);
   };
 
-  const statMiniCard = (icon: ReactNode, value: string, label: string) => (
+  const statMiniCard = (icon: ReactNode, value: ReactNode, label: string) => (
     <div className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur-sm sm:p-5">
       <div className="flex items-center gap-3">
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#EAB308]/15 text-[#EAB308]">
           {icon}
         </div>
         <div>
-          <p className="text-2xl font-bold tabular-nums text-white">{value}</p>
+          <p className="flex min-h-9 items-center text-2xl font-bold tabular-nums text-white">{value}</p>
           <p className="mt-1 text-xs leading-snug text-slate-400 sm:text-sm">{label}</p>
         </div>
       </div>
@@ -334,32 +270,30 @@ export default function DriversPage() {
         <button
           type="button"
           onClick={openCreate}
-          className="manager-accent-glow manager-primary-btn inline-flex items-center gap-2 rounded-full bg-[#EAB308] px-4 py-2.5 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow] duration-300"
+          className="manager-accent-glow manager-primary-btn inline-flex items-center gap-2 rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
         >
           <Plus size={16} />
           Додати
         </button>
       </div>
 
-      {!loading && (
-        <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-          {statMiniCard(
-            <UserRoundCheck className="h-7 w-7" />,
-            String(stats.active),
-            'Онлайн водіїв'
-          )}
-          {statMiniCard(
-            <BarChart2 className="h-7 w-7" />,
-            String(stats.totalTrips),
-            'Всього поїздок'
-          )}
-          {statMiniCard(
-            <Star className="h-7 w-7" />,
-            stats.avgRating ?? '—',
-            'Середній рейтинг'
-          )}
-        </div>
-      )}
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+        {statMiniCard(
+          <UserRoundCheck className="h-7 w-7" />,
+          loading ? <Loader2 className="h-6 w-6 animate-spin" /> : String(stats.active),
+          'Онлайн водіїв'
+        )}
+        {statMiniCard(
+          <BarChart2 className="h-7 w-7" />,
+          loading ? <Loader2 className="h-6 w-6 animate-spin" /> : String(stats.totalTrips),
+          'Всього поїздок'
+        )}
+        {statMiniCard(
+          <Star className="h-7 w-7" />,
+          loading ? <Loader2 className="h-6 w-6 animate-spin" /> : (stats.avgRating ?? '—'),
+          'Середній рейтинг'
+        )}
+      </div>
 
       {error && (
         <div className="mb-4 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">
@@ -368,7 +302,9 @@ export default function DriversPage() {
       )}
 
       {loading ? (
-        <p className="text-sm text-slate-400">Завантаження...</p>
+        <div className="py-8 text-center text-slate-400">
+          <Loader2 className="mx-auto h-5 w-5 animate-spin" />
+        </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -409,6 +345,7 @@ export default function DriversPage() {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           type="button"
+                          title="Редагувати"
                           onClick={() => openEdit(item, index)}
                           className="manager-icon-btn"
                         >
@@ -416,6 +353,7 @@ export default function DriversPage() {
                         </button>
                         <button
                           type="button"
+                          title="Видалити"
                           onClick={() => {
                             setDeleteRemoveFromWhitelist(false);
                             setDeleteTargetId(item.id);
@@ -483,68 +421,6 @@ export default function DriversPage() {
                     <p className="mt-1 text-xs text-slate-400">Роль може змінювати лише Адміністратор.</p>
                   </label>
                 ))}
-
-              {canPromoteToManager ? (
-                <div className="grid grid-cols-2 gap-3">
-                  <label className={fieldLabelClass}>
-                    Поїздки
-                    <input
-                      inputMode="numeric"
-                      value={form.tripCountInput}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          tripCountInput: event.target.value.replace(DIGITS_ONLY_REGEX, '').slice(0, 8)
-                        }))
-                      }
-                      className="mt-2 field-input tabular-nums"
-                      placeholder="0"
-                    />
-                  </label>
-                  <label className={fieldLabelClass}>
-                    Рейтинг (1-5)
-                    <input
-                      inputMode="decimal"
-                      maxLength={4}
-                      value={form.averageRatingInput}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          averageRatingInput: sanitizeRatingInput(event.target.value, prev.averageRatingInput)
-                        }))
-                      }
-                      className="mt-2 field-input tabular-nums"
-                      placeholder="—"
-                    />
-                  </label>
-                </div>
-              ) : (
-                <div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <label className={fieldLabelClass}>
-                      Поїздки
-                      <input
-                        disabled
-                        value={form.tripCountInput}
-                        className="mt-2 field-input cursor-not-allowed tabular-nums opacity-60"
-                        placeholder="0"
-                      />
-                    </label>
-                    <label className={fieldLabelClass}>
-                      Рейтинг (1–5)
-                      <input
-                        disabled
-                        value={form.averageRatingInput}
-                        className="mt-2 field-input cursor-not-allowed tabular-nums opacity-60"
-                        placeholder="—"
-                      />
-                    </label>
-                  </div>
-                  <p className="mb-2 text-xs text-slate-400">
-                    Поїздки та рейтинг може змінювати лише Адміністратор.
-                  </p>
-                </div>
-              )}
 
               <label className={fieldLabelClass}>
                 Ім&apos;я
@@ -655,7 +531,7 @@ export default function DriversPage() {
               <button
                 type="submit"
                 disabled={saving || !isFormValid}
-                className="manager-accent-glow manager-primary-btn mt-1 w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                className="manager-accent-glow manager-primary-btn mt-1 w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
                 {saving ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : 'Зберегти'}
               </button>

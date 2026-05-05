@@ -108,7 +108,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setIsTransferOpen(true)}
-                  className="manager-accent-glow manager-primary-btn mt-3 rounded-full bg-[#EAB308] px-4 py-2 text-sm font-semibold text-[#0F172A] transition"
+                  className="manager-accent-glow manager-primary-btn mt-3 rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
                 >
                   Розпочати процедуру
                 </button>
@@ -132,7 +132,7 @@ export default function SettingsPage() {
                   </div>
 
                 <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-slate-300">
-                  Оберіть менеджера й введіть <span className="font-semibold text-[#EAB308]">ПІДТВЕРДИТИ</span>.
+                  Оберіть менеджера й введіть «<span className="font-semibold text-[#EAB308]">ПІДТВЕРДИТИ</span>».
                 </div>
 
                   <form onSubmit={transferSuperAdmin} className="space-y-4">
@@ -149,14 +149,14 @@ export default function SettingsPage() {
                         .filter((manager) => manager.userId !== currentUserId && manager.role === 'Manager')
                         .map((manager) => (
                           <option key={manager.id} value={manager.userId}>
-                            №{manager.userId} - {manager.name} ({manager.phoneNumber})
+                            №{manager.userId} — {manager.name} ({manager.phoneNumber})
                           </option>
                         ))}
                     </select>
                   </label>
 
                   <label className={fieldLabelClass}>
-                    Введіть "<span className="font-semibold text-[#EAB308]">ПІДТВЕРДИТИ</span>"
+                    Введіть «<span className="font-semibold text-[#EAB308]">ПІДТВЕРДИТИ</span>»
                     <input
                       required
                       value={confirmText}
@@ -168,7 +168,7 @@ export default function SettingsPage() {
                   <button
                     type="submit"
                     disabled={loading || confirmText !== 'ПІДТВЕРДИТИ' || !targetId}
-                    className="manager-accent-glow manager-primary-btn w-full rounded-full bg-[#EAB308] px-4 py-2.5 text-sm font-semibold text-[#0F172A] transition disabled:opacity-60"
+                    className="manager-accent-glow manager-primary-btn w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
                   >
                     {loading ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : 'Підтвердити дію'}
                   </button>

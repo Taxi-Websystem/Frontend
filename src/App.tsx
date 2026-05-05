@@ -8,6 +8,8 @@ import WhitelistPage from './pages/manager/WhitelistPage';
 import ManagersPage from './pages/manager/ManagersPage';
 import DriversPage from './pages/manager/DriversPage';
 import SettingsPage from './pages/manager/SettingsPage';
+import RidesPage from './pages/manager/RidesPage';
+import DevelopmentPage from './pages/manager/DevelopmentPage';
 
 export default function App() {
   return (
@@ -22,6 +24,8 @@ export default function App() {
           <Route path="whitelist" element={<WhitelistPage />} />
           <Route path="managers" element={<ManagersPage />} />
           <Route path="drivers" element={<DriversPage />} />
+          <Route path="rides" element={<RidesPage />} />
+          <Route path="development" element={<DevelopmentPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Route>

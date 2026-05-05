@@ -1,4 +1,4 @@
-import { Car, LogOut, Settings, ShieldCheck, Users, UserRoundCheck } from 'lucide-react';
+import { Car, LogOut, Route, Settings, ShieldCheck, SquareParking, Users } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { clearAuth, getCurrentRole } from '../utils/auth';
 import { getRoleLabel } from '../utils/roles';
@@ -6,7 +6,8 @@ import { getRoleLabel } from '../utils/roles';
 const links = [
   { to: '/manager/whitelist', label: 'Whitelist', icon: ShieldCheck },
   { to: '/manager/managers', label: 'Менеджери', icon: Users },
-  { to: '/manager/drivers', label: 'Водії', icon: UserRoundCheck },
+  { to: '/manager/drivers', label: 'Водії', icon: SquareParking },
+  { to: '/manager/rides', label: 'Поїздки', icon: Route },
   { to: '/manager/settings', label: 'Налаштування', icon: Settings }
 ];
 
@@ -31,7 +32,7 @@ export default function ManagerLayout() {
             <button
               type="button"
               onClick={handleLogoClick}
-              className="manager-accent-glow manager-primary-btn flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#EAB308] transition-[filter,box-shadow] duration-300"
+              className="manager-accent-glow manager-primary-btn flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#EAB308] transition-[filter,box-shadow,opacity] duration-300"
               aria-label="Перейти на сторінку входу"
             >
               <Car className="h-6 w-6 text-[#0F172A]" />

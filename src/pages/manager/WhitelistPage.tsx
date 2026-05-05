@@ -8,6 +8,7 @@ import { DIGITS_ONLY_REGEX } from '../../utils/regex';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import FormSwitch from '../../components/FormSwitch';
 import ModalPortal from '../../components/ModalPortal';
+import StatusPulseDot from '../../components/StatusPulseDot';
 
 type WhitelistRole = AppRole;
 
@@ -156,12 +157,12 @@ export default function WhitelistPage() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-white">Whitelist</h2>
-          <p className="mt-1 text-sm text-slate-400">Керування доступом користувачів за номером телефону.</p>
+          <p className="mt-1 text-sm text-slate-400">Список користувачів з доступом до системи.</p>
         </div>
         <button
           type="button"
           onClick={openCreate}
-          className="manager-accent-glow manager-primary-btn inline-flex items-center gap-2 rounded-full bg-[#EAB308] px-4 py-2.5 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow] duration-300 disabled:opacity-50"
+          className="manager-accent-glow manager-primary-btn inline-flex items-center gap-2 rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
         >
           <Plus size={16} />
           Додати
@@ -173,16 +174,18 @@ export default function WhitelistPage() {
       )}
 
       {loading ? (
-        <p className="text-sm text-slate-400">Завантаження...</p>
+        <div className="py-8 text-center text-slate-400">
+          <Loader2 className="mx-auto h-5 w-5 animate-spin" />
+        </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-slate-400">
                 <th className="px-3 py-2">ID</th>
-                <th className="px-3 py-2">Номер телефону</th>
+                <th className="px-3 py-2">Статус</th>
                 <th className="px-3 py-2">Роль</th>
-                <th className="px-3 py-2">Активний</th>
+                <th className="px-3 py-2">Номер телефону</th>
                 <th className="px-3 py-2 text-right">Дії</th>
               </tr>
             </thead>
@@ -190,13 +193,22 @@ export default function WhitelistPage() {
               {items.map((entry) => (
                 <tr key={entry.id} className="border-b border-white/10 text-slate-200">
                   <td className="px-3 py-2">{entry.id}</td>
-                  <td className="px-3 py-2 font-mono">{entry.phoneNumber}</td>
+                  <td className="px-3 py-2">
+                    <span
+                      className="manager-status-chip manager-status-chip--interactive inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs"
+                      data-status={entry.isActive ? 'online' : 'offline'}
+                    >
+                      <StatusPulseDot kind={entry.isActive ? 'online' : 'offline'} />
+                      {entry.isActive ? 'Активний' : 'Неактивний'}
+                    </span>
+                  </td>
                   <td className="px-3 py-2">{getRoleLabel(entry.role)}</td>
-                  <td className="px-3 py-2">{entry.isActive ? 'Так' : 'Ні'}</td>
+                  <td className="px-3 py-2 font-mono">{entry.phoneNumber}</td>
                   <td className="px-3 py-2">
                     <div className="flex items-center justify-end gap-2">
                       <button
                         type="button"
+                        title="Редагувати"
                         onClick={() => openEdit(entry)}
                         disabled={
                           (!isSuperAdmin && entry.role !== 'Driver') ||
@@ -208,6 +220,7 @@ export default function WhitelistPage() {
                       </button>
                       <button
                         type="button"
+                        title="Видалити"
                         onClick={() => setDeleteTargetId(entry.id)}
                         disabled={managerCannotDelete || entry.role === 'SuperAdmin'}
                         className="manager-icon-btn manager-icon-btn--danger disabled:pointer-events-none"
@@ -239,6 +252,19 @@ export default function WhitelistPage() {
               </div>
 
               <form onSubmit={saveEntry} className="space-y-4">
+
+              <FormSwitch
+                label="Активний"
+                checked={form.isActive}
+                disabled={Boolean(isSuperAdmin && editing && editing.id === currentUserId)}
+                description={
+                  isSuperAdmin && editing && editing.id === currentUserId
+                    ? 'Запис Адміністратора не можна деактивувати.'
+                    : undefined
+                }
+                onChange={(next) => setForm((prev) => ({ ...prev, isActive: next }))}
+              />
+
               {isSuperAdmin ? (
                 editing?.role === 'SuperAdmin' ? (
                   <label className={fieldLabelClass}>
@@ -250,7 +276,7 @@ export default function WhitelistPage() {
                     >
                       <option value="SuperAdmin">{getRoleLabel('SuperAdmin')}</option>
                     </select>
-                    <p className="mt-1 text-xs text-slate-400">Роль Адміністратора можна тільки передати.</p>
+                    <p className="mt-1 text-xs text-slate-400">Роль Адміністратора не можна змінювати.</p>
                   </label>
                 ) : (
                   <label className={fieldLabelClass}>
@@ -305,16 +331,10 @@ export default function WhitelistPage() {
                 </div>
               </label>
 
-              <FormSwitch
-                label="Активний"
-                checked={form.isActive}
-                onChange={(next) => setForm((prev) => ({ ...prev, isActive: next }))}
-              />
-
               <button
                 type="submit"
                 disabled={saving || !isFormValid}
-                className="manager-accent-glow manager-primary-btn mt-1 w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                className="manager-accent-glow manager-primary-btn mt-1 w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
                 {saving ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : 'Зберегти'}
               </button>

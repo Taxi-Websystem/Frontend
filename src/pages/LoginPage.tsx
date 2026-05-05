@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, ShieldCheck, ArrowRight, Loader2, ChevronLeft, Car } from 'lucide-react';
+import { Phone, ShieldCheck, ArrowRight, Loader2, ChevronLeft, Car, UserRoundCheck, CheckCircle2 } from 'lucide-react';
 import { api } from '../api/axios';
 import { DIGITS_ONLY_REGEX } from '../utils/regex';
 
 type Step = 'phone' | 'otp';
+interface LoginPublicStats {
+  onlineDrivers: number;
+  todayTrips: number;
+}
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -12,6 +16,8 @@ export default function LoginPage() {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [publicStats, setPublicStats] = useState<LoginPublicStats | null>(null);
+  const [publicStatsLoading, setPublicStatsLoading] = useState(true);
 
   const [digits, setDigits] = useState('');
   const phone = `+380${digits}`;
@@ -20,9 +26,25 @@ export default function LoginPage() {
   const fieldLabelClass = 'mb-2 block text-sm font-medium text-slate-300';
   const errorBoxClass = 'rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300';
   const primaryButtonClass =
-    'login-accent-glow mt-1 flex w-full items-center justify-center gap-2 rounded-full bg-[#EAB308] py-4 text-base font-semibold text-[#0F172A] transition-[filter,opacity,box-shadow] duration-300 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none';
+    'login-accent-glow mt-1 flex h-[58px] w-full items-center justify-center gap-2 rounded-full bg-[#EAB308] px-4 text-base font-semibold text-[#0F172A] transition-[filter,opacity,box-shadow] duration-300 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none';
   const statCardClass =
     'rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl backdrop-blur-xl sm:p-5';
+
+  const loadPublicStats = async () => {
+    setPublicStatsLoading(true);
+    try {
+      const response = await api.get<LoginPublicStats>('/auth/public-stats');
+      setPublicStats(response.data);
+    } catch {
+      setPublicStats(null);
+    } finally {
+      setPublicStatsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadPublicStats();
+  }, []);
 
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +103,7 @@ export default function LoginPage() {
       />
 
       <div className="relative z-[1] flex min-h-[100dvh] w-full flex-col items-center justify-center px-6 py-8 sm:px-8 lg:min-h-screen lg:w-1/2 lg:py-12">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-lg">
           <div className="mb-6 flex flex-col items-center gap-3 lg:mb-5">
             <div className="flex items-center justify-center gap-4">
               <div className="login-accent-glow flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#EAB308]">
@@ -197,14 +219,44 @@ export default function LoginPage() {
             )}
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-5 sm:gap-4">
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className={statCardClass}>
-              <p className="text-2xl font-bold tabular-nums text-white">—</p>
-              <p className="mt-1 text-xs leading-snug text-slate-400 sm:text-sm">Онлайн водіїв</p>
+              <div className="flex items-center gap-3">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#EAB308]/15 text-[#EAB308]">
+                  <UserRoundCheck className="h-7 w-7" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold tabular-nums text-white">
+                    {publicStatsLoading ? (
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : publicStats ? (
+                      String(publicStats.onlineDrivers)
+                    ) : (
+                      '—'
+                    )}
+                  </p>
+                  <p className="mt-1 text-xs leading-snug text-slate-400 sm:text-sm">Онлайн водіїв</p>
+                </div>
+              </div>
             </div>
             <div className={statCardClass}>
-              <p className="text-2xl font-bold tabular-nums text-white">—</p>
-              <p className="mt-1 text-xs leading-snug text-slate-400 sm:text-sm">Сьогодні поїздок</p>
+              <div className="flex items-center gap-3">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#EAB308]/15 text-[#EAB308]">
+                  <CheckCircle2 className="h-7 w-7" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold tabular-nums text-white">
+                    {publicStatsLoading ? (
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : publicStats ? (
+                      String(publicStats.todayTrips)
+                    ) : (
+                      '—'
+                    )}
+                  </p>
+                  <p className="mt-1 text-xs leading-snug text-slate-400 sm:text-sm">Сьогодні поїздок</p>
+                </div>
+              </div>
             </div>
           </div>
 

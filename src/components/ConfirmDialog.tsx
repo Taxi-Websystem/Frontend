@@ -16,8 +16,8 @@ export default function ConfirmDialog({
   open,
   title = 'Підтвердження',
   message,
-  confirmText = 'Так',
-  cancelText = 'Ні',
+  confirmText = 'Видалити',
+  cancelText = 'Скасувати',
   children,
   onConfirm,
   onCancel
