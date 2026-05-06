@@ -87,7 +87,7 @@ export default function SettingsPage() {
       <p className="mt-2 text-sm text-slate-400">Системні параметри панелі керування.</p>
 
       {error && (
-        <div className="mt-4 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
+        <div className="field-error-box mt-4">{error}</div>
       )}
       {success && (
         <div className="mt-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">

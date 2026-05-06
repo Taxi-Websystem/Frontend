@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { ArrowRight, Car, Loader2 } from 'lucide-react';
+import { ArrowRight, Car, Gauge, Loader2, ShieldCheck } from 'lucide-react';
+import AuthBackgroundLayers from '../components/AuthBackgroundLayers';
 import { api } from '../api/axios';
 import type { AppRole } from '../utils/auth';
 import { sanitizeCarBrandOrModel, sanitizeCarColorUa } from '../utils/carFields';
@@ -105,13 +106,13 @@ export default function CompleteRegistrationPage() {
       : 0;
   const totalFields = isDriver ? 6 : isManagerOrAdmin ? 2 : 0;
   const formProgressPercent = totalFields > 0 ? Math.round((completedFields / totalFields) * 100) : 0;
-  const cardClass = 'rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-xl sm:p-8';
+  const cardClass = 'rounded-3xl border border-white/10 bg-[#0F172A]/90 p-6 shadow-2xl sm:p-8';
   const fieldLabelClass = 'mb-2 block text-sm font-medium text-slate-300';
-  const errorBoxClass = 'rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300';
+  const errorBoxClass = 'field-error-box';
   const hintTextClass = 'mt-1 text-xs text-slate-400';
   const primaryButtonClass =
-    'login-accent-glow mt-1 flex w-full items-center justify-center gap-2 rounded-full bg-[#EAB308] py-4 text-base font-semibold text-[#0F172A] transition-[filter,opacity,box-shadow] duration-300 hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/25 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none';
-  const statCardClass = 'rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl backdrop-blur-xl sm:p-5';
+    'manager-accent-glow manager-primary-btn mt-1 flex w-full items-center justify-center gap-2 rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none';
+  const statCardClass = 'rounded-3xl border border-white/10 bg-[#0F172A]/90 p-4 shadow-2xl sm:p-5';
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -147,16 +148,13 @@ export default function CompleteRegistrationPage() {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#0F172A] lg:flex">
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_85%_65%_at_78%_45%,rgba(234,179,8,0.11),transparent_58%),radial-gradient(ellipse_100%_80%_at_50%_100%,rgba(15,23,42,0.4),transparent_55%)]"
-        aria-hidden
-      />
+      <AuthBackgroundLayers />
 
       <div className="relative z-[1] flex min-h-[100dvh] w-full flex-col items-center justify-center px-6 py-8 sm:px-8 lg:min-h-screen lg:w-1/2 lg:py-12">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-lg">
           <div className="mb-6 flex flex-col items-center gap-3 lg:mb-5">
             <div className="flex items-center justify-center gap-4">
-              <div className="login-accent-glow flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#EAB308]">
+              <div className="login-accent-glow flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#EAB308] hover:brightness-105">
                 <Car className="h-7 w-7 text-[#0F172A]" />
               </div>
               <h1 className="text-left text-5xl font-bold tracking-tight text-white">
@@ -171,23 +169,31 @@ export default function CompleteRegistrationPage() {
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
                 <label className={fieldLabelClass}>Номер телефону</label>
-                <div className="mt-2 flex items-center overflow-hidden rounded-xl border border-white/10 bg-[#1E293B]/60 opacity-80">
-                  <span className="border-r border-white/10 px-4 py-2 font-mono text-sm text-slate-300">+380</span>
-                  <input
-                    type="text"
-                    disabled
-                    value={phoneDigitsLocal}
-                    placeholder="XXXXXXXXX"
-                    className="w-full bg-transparent px-4 py-2 font-mono text-sm text-slate-300 outline-none placeholder:text-slate-500 disabled:cursor-not-allowed"
-                  />
-                </div>
+                {profileLoaded ? (
+                  <div className="manager-phone-field mt-2 opacity-60">
+                    <span className="manager-phone-field__prefix">+380</span>
+                    <input
+                      type="text"
+                      disabled
+                      value={phoneDigitsLocal}
+                      placeholder="XXXXXXXXX"
+                      className="manager-phone-field__input"
+                    />
+                  </div>
+                ) : (
+                  <div className="pointer-events-none manager-phone-field mt-2 select-none opacity-60" aria-busy>
+                    <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center px-4">
+                      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-slate-400" aria-hidden />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <label className={fieldLabelClass}>
                 Ім&apos;я
                 <input
                   required
-                  autoFocus={!profileLoaded || name.length === 0}
+                  autoFocus={name.length === 0}
                   value={name}
                   onChange={(e) => {
                     const nextName = sanitizeNameUa(e.target.value);
@@ -261,7 +267,7 @@ export default function CompleteRegistrationPage() {
 
               <button type="submit" disabled={loading || !canSubmit} className={primaryButtonClass}>
                 {loading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Loader2 className="mx-auto h-5 w-5 animate-spin" />
                 ) : (
                   <>
                     Зберегти і продовжити
@@ -272,28 +278,42 @@ export default function CompleteRegistrationPage() {
             </form>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-5 sm:gap-4">
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:grid-cols-2">
             <div className={statCardClass}>
-              <p className="text-2xl font-bold text-white">{roleLabel}</p>
-              <p className="mt-1 text-xs leading-snug text-slate-400 sm:text-sm">Роль профілю</p>
+              <div className="flex items-center gap-3">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#EAB308]/15 text-[#EAB308]">
+                  <ShieldCheck className="h-7 w-7" />
+                </div>
+                <div>
+                  <p className="flex min-h-9 items-center text-2xl font-bold leading-snug text-white">
+                    {profileLoaded ? roleLabel : <Loader2 className="h-6 w-6 animate-spin" />}
+                  </p>
+                  <p className="mt-1 text-xs leading-snug text-slate-400 sm:text-sm">Роль профілю</p>
+                </div>
+              </div>
             </div>
             <div className={statCardClass}>
-              <p className="text-2xl font-bold text-white">{formProgressPercent}%</p>
-              <p className="mt-1 text-xs leading-snug text-slate-400 sm:text-sm">Готовність профілю</p>
+              <div className="flex items-center gap-3">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#EAB308]/15 text-[#EAB308]">
+                  <Gauge className="h-7 w-7" />
+                </div>
+                <div>
+                  <p className="flex min-h-9 items-center text-2xl font-bold tabular-nums text-white">
+                    {profileLoaded ? `${formProgressPercent}%` : <Loader2 className="h-6 w-6 animate-spin" />}
+                  </p>
+                  <p className="mt-1 text-xs leading-snug text-slate-400 sm:text-sm">Готовність профілю</p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <p className="mt-6 text-center text-xs text-slate-500 sm:mt-8">© 2026 Taxi 839. Всі права захищені.</p>
+          <p className="mt-6 text-center text-xs leading-snug text-slate-500 sm:mt-8">© 2026 Taxi 839. Всі права захищені.</p>
         </div>
       </div>
 
-      <div className="relative z-[1] hidden min-h-screen w-1/2 flex-col overflow-hidden lg:flex">
-        <div className="relative flex min-h-0 flex-1 items-center justify-center p-6 sm:p-10">
-          <div className="relative aspect-square w-full max-w-lg min-h-[280px] max-h-[min(72vh,520px)]">
-            <div
-              className="login-taxi-glow pointer-events-none absolute left-1/2 top-1/2 h-[125%] w-[125%] rounded-full bg-[radial-gradient(circle,rgba(234,179,8,0.5)_0%,rgba(234,179,8,0.16)_40%,transparent_72%)] blur-3xl"
-              aria-hidden
-            />
+      <div className="relative z-[1] hidden min-h-screen w-1/2 flex-col lg:flex">
+        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-visible p-6 sm:p-10">
+          <div className="relative aspect-square w-full max-w-lg min-h-[280px] max-h-[min(72vh,520px)] overflow-visible">
             <div className="absolute inset-0 z-[1] flex items-center justify-center">
               <svg
                 className="h-[76%] w-[76%] max-h-[min(48vh,400px)] max-w-[min(48vh,400px)] text-[#EAB308] opacity-[0.42]"

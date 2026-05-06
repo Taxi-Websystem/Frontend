@@ -40,7 +40,6 @@ export default function WhitelistPage() {
   const currentRole = getCurrentRole();
   const currentUserId = getCurrentUserId();
   const isSuperAdmin = currentRole === 'SuperAdmin';
-  const managerCannotDelete = currentRole === 'Manager';
 
   const [items, setItems] = useState<WhitelistEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -170,7 +169,7 @@ export default function WhitelistPage() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
+        <div className="field-error-box mb-4">{error}</div>
       )}
 
       {loading ? (
@@ -222,7 +221,7 @@ export default function WhitelistPage() {
                         type="button"
                         title="Видалити"
                         onClick={() => setDeleteTargetId(entry.id)}
-                        disabled={managerCannotDelete || entry.role === 'SuperAdmin'}
+                        disabled={entry.role === 'SuperAdmin' || (!isSuperAdmin && entry.role !== 'Driver')}
                         className="manager-icon-btn manager-icon-btn--danger disabled:pointer-events-none"
                       >
                         <Trash2 size={14} />
@@ -312,8 +311,8 @@ export default function WhitelistPage() {
 
               <label className={fieldLabelClass}>
                 Номер телефону
-                <div className="manager-field-outline mt-2 flex items-center overflow-hidden rounded-xl border border-white/10 bg-[#1E293B]">
-                  <span className="border-r border-white/10 px-4 py-2 font-mono text-sm text-slate-300">+380</span>
+                <div className="manager-phone-field mt-2">
+                  <span className="manager-phone-field__prefix">+380</span>
                   <input
                     required
                     inputMode="numeric"
@@ -325,7 +324,7 @@ export default function WhitelistPage() {
                         phoneDigits: event.target.value.replace(DIGITS_ONLY_REGEX, '').slice(0, 9)
                       }))
                     }
-                    className="w-full bg-transparent px-4 py-2 font-mono text-sm text-white outline-none"
+                    className="manager-phone-field__input"
                     placeholder="XXXXXXXXX"
                   />
                 </div>

@@ -281,12 +281,12 @@ export default function DriversPage() {
         {statMiniCard(
           <UserRoundCheck className="h-7 w-7" />,
           loading ? <Loader2 className="h-6 w-6 animate-spin" /> : String(stats.active),
-          'Онлайн водіїв'
+          'Водіїв онлайн'
         )}
         {statMiniCard(
           <BarChart2 className="h-7 w-7" />,
           loading ? <Loader2 className="h-6 w-6 animate-spin" /> : String(stats.totalTrips),
-          'Всього поїздок'
+          'Поїздок загалом'
         )}
         {statMiniCard(
           <Star className="h-7 w-7" />,
@@ -296,7 +296,7 @@ export default function DriversPage() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="field-error-box mb-4">
           {error}
         </div>
       )}
@@ -441,8 +441,8 @@ export default function DriversPage() {
 
               <label className={fieldLabelClass}>
                 Номер телефону
-                <div className="manager-field-outline mt-2 flex items-center overflow-hidden rounded-xl border border-white/10 bg-[#1E293B]">
-                  <span className="border-r border-white/10 px-4 py-2 font-mono text-sm text-slate-300">+380</span>
+                <div className="manager-phone-field mt-2">
+                  <span className="manager-phone-field__prefix">+380</span>
                   <input
                     required
                     inputMode="numeric"
@@ -454,7 +454,7 @@ export default function DriversPage() {
                         phoneDigits: event.target.value.replace(DIGITS_ONLY_REGEX, '').slice(0, 9)
                       }))
                     }
-                    className="min-w-0 flex-1 bg-transparent px-4 py-2 font-mono text-sm text-white outline-none"
+                    className="manager-phone-field__input"
                     placeholder="XXXXXXXXX"
                   />
                 </div>

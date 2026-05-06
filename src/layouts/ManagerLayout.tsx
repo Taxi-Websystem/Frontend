@@ -1,5 +1,6 @@
 import { Car, LogOut, Route, Settings, ShieldCheck, SquareParking, Users } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import AuthBackgroundLayers from '../components/AuthBackgroundLayers';
 import { clearAuth, getCurrentRole } from '../utils/auth';
 import { getRoleLabel } from '../utils/roles';
 
@@ -25,7 +26,8 @@ export default function ManagerLayout() {
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-[#0F172A] text-slate-100">
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[#0F172A] text-slate-100">
+      <AuthBackgroundLayers />
       <div className="relative z-[1] flex min-h-0 flex-1 flex-col lg:flex-row">
         <aside className="flex w-full shrink-0 flex-col border-b border-white/10 bg-white/5 p-4 backdrop-blur-xl sm:p-5 lg:w-72 lg:border-b-0 lg:border-r lg:rounded-none lg:border-white/10">
           <div className="mb-6 flex items-center gap-3">
@@ -83,7 +85,7 @@ export default function ManagerLayout() {
             <Outlet />
           </main>
 
-          <footer className="shrink-0 border-t border-white/10 px-3 py-4 text-center text-xs text-slate-500 sm:px-5">
+          <footer className="shrink-0 border-t border-white/10 px-3 py-4 text-center text-xs leading-snug text-slate-500 sm:px-5">
             © 2026 Taxi 839. Всі права захищені.
           </footer>
         </div>

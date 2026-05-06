@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Phone, ShieldCheck, ArrowRight, Loader2, ChevronLeft, Car, UserRoundCheck, CheckCircle2 } from 'lucide-react';
+import AuthBackgroundLayers from '../components/AuthBackgroundLayers';
 import { api } from '../api/axios';
 import { DIGITS_ONLY_REGEX } from '../utils/regex';
 
@@ -24,7 +25,7 @@ export default function LoginPage() {
   const isPhoneValid = digits.length === 9;
   const cardClass = 'rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-xl sm:p-8';
   const fieldLabelClass = 'mb-2 block text-sm font-medium text-slate-300';
-  const errorBoxClass = 'rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300';
+  const errorBoxClass = 'field-error-box';
   const primaryButtonClass =
     'login-accent-glow mt-1 flex h-[58px] w-full items-center justify-center gap-2 rounded-full bg-[#EAB308] px-4 text-base font-semibold text-[#0F172A] transition-[filter,opacity,box-shadow] duration-300 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none';
   const statCardClass =
@@ -89,7 +90,7 @@ export default function LoginPage() {
         });
       }
     } catch {
-      setError('Невірний або прострочений код.');
+      setError('Невірний або прострочений код підтвердження.');
     } finally {
       setLoading(false);
     }
@@ -97,16 +98,13 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#0F172A] lg:flex">
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_85%_65%_at_78%_45%,rgba(234,179,8,0.11),transparent_58%),radial-gradient(ellipse_100%_80%_at_50%_100%,rgba(15,23,42,0.4),transparent_55%)]"
-        aria-hidden
-      />
+      <AuthBackgroundLayers />
 
       <div className="relative z-[1] flex min-h-[100dvh] w-full flex-col items-center justify-center px-6 py-8 sm:px-8 lg:min-h-screen lg:w-1/2 lg:py-12">
         <div className="w-full max-w-lg">
           <div className="mb-6 flex flex-col items-center gap-3 lg:mb-5">
             <div className="flex items-center justify-center gap-4">
-              <div className="login-accent-glow flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#EAB308]">
+              <div className="login-accent-glow flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#EAB308] hover:brightness-105">
                 <Car className="h-7 w-7 text-[#0F172A]" />
               </div>
               <h1 className="text-left text-5xl font-bold tracking-tight text-white">
@@ -125,8 +123,8 @@ export default function LoginPage() {
                   <label className={fieldLabelClass}>Номер телефону</label>
                   <div className="login-field-outline flex items-center overflow-hidden rounded-2xl border border-white/10 bg-[#1E293B]">
                     <div className="flex items-center gap-2 border-r border-white/10 px-4 py-4">
-                      <Phone className="h-4 w-4 text-slate-400" />
-                      <span className="font-mono text-lg text-slate-300">+380</span>
+                      <Phone className="h-4 w-4 text-white" aria-hidden />
+                      <span className="font-mono text-lg text-white">+380</span>
                     </div>
                     <input
                       type="tel"
@@ -226,7 +224,7 @@ export default function LoginPage() {
                   <UserRoundCheck className="h-7 w-7" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold tabular-nums text-white">
+                  <p className="flex min-h-9 items-center text-2xl font-bold tabular-nums text-white">
                     {publicStatsLoading ? (
                       <Loader2 className="h-6 w-6 animate-spin" />
                     ) : publicStats ? (
@@ -235,7 +233,7 @@ export default function LoginPage() {
                       '—'
                     )}
                   </p>
-                  <p className="mt-1 text-xs leading-snug text-slate-400 sm:text-sm">Онлайн водіїв</p>
+                  <p className="mt-1 text-xs leading-snug text-slate-400 sm:text-sm">Водіїв онлайн</p>
                 </div>
               </div>
             </div>
@@ -245,7 +243,7 @@ export default function LoginPage() {
                   <CheckCircle2 className="h-7 w-7" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold tabular-nums text-white">
+                  <p className="flex min-h-9 items-center text-2xl font-bold tabular-nums text-white">
                     {publicStatsLoading ? (
                       <Loader2 className="h-6 w-6 animate-spin" />
                     ) : publicStats ? (
@@ -254,23 +252,19 @@ export default function LoginPage() {
                       '—'
                     )}
                   </p>
-                  <p className="mt-1 text-xs leading-snug text-slate-400 sm:text-sm">Сьогодні поїздок</p>
+                  <p className="mt-1 text-xs leading-snug text-slate-400 sm:text-sm">Поїздок сьогодні</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <p className="mt-6 text-center text-xs text-slate-500 sm:mt-8">© 2026 Taxi 839. Всі права захищені.</p>
+          <p className="mt-6 text-center text-xs leading-snug text-slate-500 sm:mt-8">© 2026 Taxi 839. Всі права захищені.</p>
         </div>
       </div>
 
-      <div className="relative z-[1] hidden min-h-screen w-1/2 flex-col overflow-hidden lg:flex">
-        <div className="relative flex min-h-0 flex-1 items-center justify-center p-6 sm:p-10">
-          <div className="relative aspect-square w-full max-w-lg min-h-[280px] max-h-[min(72vh,520px)]">
-            <div
-              className="login-taxi-glow pointer-events-none absolute left-1/2 top-1/2 h-[125%] w-[125%] rounded-full bg-[radial-gradient(circle,rgba(234,179,8,0.5)_0%,rgba(234,179,8,0.16)_40%,transparent_72%)] blur-3xl"
-              aria-hidden
-            />
+      <div className="relative z-[1] hidden min-h-screen w-1/2 flex-col lg:flex">
+        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-visible p-6 sm:p-10">
+          <div className="relative aspect-square w-full max-w-lg min-h-[280px] max-h-[min(72vh,520px)] overflow-visible">
             <div className="absolute inset-0 z-[1] flex items-center justify-center">
               <svg
                 className="h-[76%] w-[76%] max-h-[min(48vh,400px)] max-w-[min(48vh,400px)] text-[#EAB308] opacity-[0.42]"

@@ -182,7 +182,7 @@ export default function ManagersPage() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="field-error-box mb-4">
           {error}
         </div>
       )}
@@ -355,8 +355,15 @@ export default function ManagersPage() {
 
               <label className={fieldLabelClass}>
                 Номер телефону
-                <div className="manager-field-outline mt-2 flex items-center overflow-hidden rounded-xl border border-white/10 bg-[#1E293B]">
-                  <span className="border-r border-white/10 px-4 py-2 font-mono text-sm text-slate-300">+380</span>
+                <div
+                  className={`manager-phone-field mt-2 ${
+                    !phoneRequiredForSubmit ||
+                    Boolean(editing && editing.role === 'SuperAdmin' && editing.userId !== currentUserId)
+                      ? 'manager-phone-field--dimmed'
+                      : ''
+                  }`}
+                >
+                  <span className="manager-phone-field__prefix">+380</span>
                   <input
                     required
                     inputMode="numeric"
@@ -372,10 +379,13 @@ export default function ManagersPage() {
                         phoneDigits: event.target.value.replace(DIGITS_ONLY_REGEX, '').slice(0, 9)
                       }))
                     }
-                    className="w-full min-w-0 flex-1 bg-transparent px-4 py-2 font-mono text-sm text-white outline-none disabled:cursor-not-allowed disabled:text-slate-500"
+                    className="manager-phone-field__input"
                     placeholder="XXXXXXXXX"
                   />
                 </div>
+                {isEditingOwnProfile && role === 'Manager' ? (
+                  <p className="mt-1 text-xs text-slate-400">Номер телефону може змінювати лише Адміністратор.</p>
+                ) : null}
               </label>
 
               <button

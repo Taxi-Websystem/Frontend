@@ -312,7 +312,7 @@ export default function RidesPage() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="field-error-box mb-4">
           {error}
         </div>
       )}
