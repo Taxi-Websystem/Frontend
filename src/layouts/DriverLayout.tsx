@@ -1,23 +1,23 @@
-import { Car, LogOut, Route, Settings, ShieldCheck, SquareParking, Users } from 'lucide-react';
+import { Car, LogOut, Power, Settings } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import { useEffect } from 'react';
 import AuthBackgroundLayers from '../components/AuthBackgroundLayers';
+import { clearAuth, getToken } from '../utils/auth';
 import { api } from '../api/axios';
-import { clearAuth, getCurrentRole, getToken } from '../utils/auth';
-import { getRoleLabel } from '../utils/roles';
 
 const links = [
-  { to: '/manager/whitelist', label: 'Whitelist', icon: ShieldCheck },
-  { to: '/manager/managers', label: 'Менеджери', icon: Users },
-  { to: '/manager/drivers', label: 'Водії', icon: SquareParking },
-  { to: '/manager/rides', label: 'Поїздки', icon: Route },
-  { to: '/manager/settings', label: 'Налаштування', icon: Settings }
+  { to: '/driver/shift', label: 'Зміна', icon: Power },
+  { to: '/driver/settings', label: 'Налаштування', icon: Settings }
 ];
 
-export default function ManagerLayout() {
+function getPresenceHubUrl(): string {
+  const baseUrl = (api.defaults.baseURL as string | undefined) ?? '';
+  return `${baseUrl.replace(/\/api\/?$/, '')}/hubs/presence`;
+}
+
+export default function DriverLayout() {
   const navigate = useNavigate();
-  const role = getCurrentRole();
 
   useEffect(() => {
     const token = getToken();
@@ -25,11 +25,8 @@ export default function ManagerLayout() {
       return;
     }
 
-    const baseUrl = (api.defaults.baseURL as string | undefined) ?? '';
-    const hubUrl = `${baseUrl.replace(/\/api\/?$/, '')}/hubs/presence`;
-
     const connection = new HubConnectionBuilder()
-      .withUrl(hubUrl, {
+      .withUrl(getPresenceHubUrl(), {
         accessTokenFactory: () => getToken() ?? '',
         withCredentials: false
       })
@@ -84,7 +81,7 @@ export default function ManagerLayout() {
               <p className="text-lg font-bold tracking-tight text-white">
                 Taxi <span className="text-[#EAB308]">839</span>
               </p>
-              <p className="text-xs text-slate-400">Панель менеджера</p>
+              <p className="text-xs text-slate-400">Панель водія</p>
             </div>
           </div>
 
@@ -115,7 +112,7 @@ export default function ManagerLayout() {
                 Вийти
               </button>
               <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-slate-300 backdrop-blur-sm">
-                Роль: <span className="font-semibold text-[#EAB308]">{role ? getRoleLabel(role) : 'Невідома'}</span>
+                Роль: <span className="font-semibold text-[#EAB308]">Водій</span>
               </div>
             </div>
           </nav>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Loader2, Pencil, Plus, Save, Trash2, X } from 'lucide-react';
 import { api, getApiErrorMessage } from '../../api/axios';
 import { getCurrentRole, getCurrentUserId } from '../../utils/auth';
 import type { AppRole } from '../../utils/auth';
@@ -77,6 +77,19 @@ export default function WhitelistPage() {
 
   useEffect(() => {
     void loadWhitelist();
+  }, []);
+
+  useEffect(() => {
+    const onDashboardDataChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ entity?: string }>).detail;
+      if (detail?.entity === 'presence') {
+        return;
+      }
+      void loadWhitelist();
+    };
+
+    window.addEventListener('dashboard:data-changed', onDashboardDataChanged as EventListener);
+    return () => window.removeEventListener('dashboard:data-changed', onDashboardDataChanged as EventListener);
   }, []);
 
   const openCreate = () => {
@@ -333,9 +346,17 @@ export default function WhitelistPage() {
               <button
                 type="submit"
                 disabled={saving || !isFormValid}
-                className="manager-accent-glow manager-primary-btn mt-1 w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                className="manager-accent-glow manager-primary-btn relative mt-1 h-[48px] w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
-                {saving ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : 'Зберегти'}
+                <span className={`inline-flex items-center gap-2 ${saving ? 'invisible' : ''}`}>
+                  <Save size={16} />
+                  Зберегти
+                </span>
+                {saving ? (
+                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  </span>
+                ) : null}
               </button>
               </form>
             </div>

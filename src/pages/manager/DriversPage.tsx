@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import { BarChart2, Loader2, Pencil, Plus, Star, Trash2, UserRoundCheck, X } from 'lucide-react';
+import { BarChart2, Loader2, Pencil, Plus, Save, Star, Trash2, UserRoundCheck, X } from 'lucide-react';
 import { api, getApiErrorMessage } from '../../api/axios';
 import { getCurrentRole } from '../../utils/auth';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -11,8 +11,7 @@ import { formatLicensePlateInput, LICENSE_PLATE_REGEX } from '../../utils/licens
 import { sanitizeNameUa } from '../../utils/nameFields';
 import { DIGITS_ONLY_REGEX } from '../../utils/regex';
 import { getRoleLabel } from '../../utils/roles';
-
-type UserStatus = 'Offline' | 'Online' | 'InRide';
+import { getUserStatusLabel, type UserStatus } from '../../utils/userStatus';
 
 interface DriverListItem {
   id: number;
@@ -59,12 +58,6 @@ const statusToCode: Record<UserStatus, number> = {
   Offline: 0,
   Online: 1,
   InRide: 2
-};
-
-const statusLabels: Record<UserStatus, string> = {
-  Online: 'Онлайн',
-  InRide: 'У дорозі',
-  Offline: 'Офлайн'
 };
 
 function userStatusToPulseKind(status: UserStatus): StatusPulseKind {
@@ -150,6 +143,40 @@ export default function DriversPage() {
 
   useEffect(() => {
     void loadDrivers();
+  }, []);
+
+  useEffect(() => {
+    const onDashboardDataChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ entity?: string }>).detail;
+      if (detail?.entity === 'presence') {
+        return;
+      }
+      void loadDrivers();
+    };
+
+    window.addEventListener('dashboard:data-changed', onDashboardDataChanged as EventListener);
+    return () => window.removeEventListener('dashboard:data-changed', onDashboardDataChanged as EventListener);
+  }, []);
+
+  useEffect(() => {
+    const onPresenceChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ userId: number; status: UserStatus }>).detail;
+      if (!detail) return;
+
+      setItems((prev) =>
+        prev.map((item) =>
+          item.userId === detail.userId
+            ? {
+                ...item,
+                userStatus: detail.status
+              }
+            : item
+        )
+      );
+    };
+
+    window.addEventListener('presence:changed', onPresenceChanged as EventListener);
+    return () => window.removeEventListener('presence:changed', onPresenceChanged as EventListener);
   }, []);
 
   const openCreate = () => {
@@ -332,7 +359,7 @@ export default function DriversPage() {
                         data-status={statusKind}
                       >
                         <StatusPulseDot kind={statusKind} />
-                        {statusLabels[status]}
+                        {getUserStatusLabel(status)}
                       </span>
                     </td>
                     <td className="px-3 py-2">{item.name}</td>
@@ -531,9 +558,17 @@ export default function DriversPage() {
               <button
                 type="submit"
                 disabled={saving || !isFormValid}
-                className="manager-accent-glow manager-primary-btn mt-1 w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                className="manager-accent-glow manager-primary-btn relative mt-1 h-[48px] w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
-                {saving ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : 'Зберегти'}
+                <span className={`inline-flex items-center gap-2 ${saving ? 'invisible' : ''}`}>
+                  <Save size={16} />
+                  Зберегти
+                </span>
+                {saving ? (
+                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  </span>
+                ) : null}
               </button>
               </form>
             </div>

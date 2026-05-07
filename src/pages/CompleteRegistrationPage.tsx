@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { ArrowRight, Car, Gauge, Loader2, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Car, Gauge, Loader2, Save, ShieldCheck } from 'lucide-react';
 import AuthBackgroundLayers from '../components/AuthBackgroundLayers';
 import { api } from '../api/axios';
 import type { AppRole } from '../utils/auth';
@@ -106,17 +106,17 @@ export default function CompleteRegistrationPage() {
       : 0;
   const totalFields = isDriver ? 6 : isManagerOrAdmin ? 2 : 0;
   const formProgressPercent = totalFields > 0 ? Math.round((completedFields / totalFields) * 100) : 0;
-  const cardClass = 'rounded-3xl border border-white/10 bg-[#0F172A]/90 p-6 shadow-2xl sm:p-8';
+  const cardClass = 'rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-xl sm:p-8';
   const fieldLabelClass = 'mb-2 block text-sm font-medium text-slate-300';
   const errorBoxClass = 'field-error-box';
   const hintTextClass = 'mt-1 text-xs text-slate-400';
   const primaryButtonClass =
     'manager-accent-glow manager-primary-btn mt-1 flex w-full items-center justify-center gap-2 rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none';
-  const statCardClass = 'rounded-3xl border border-white/10 bg-[#0F172A]/90 p-4 shadow-2xl sm:p-5';
+  const statCardClass = 'rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl backdrop-blur-xl sm:p-5';
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || loading) return;
 
     setError('');
     setLoading(true);
@@ -154,9 +154,14 @@ export default function CompleteRegistrationPage() {
         <div className="w-full max-w-lg">
           <div className="mb-6 flex flex-col items-center gap-3 lg:mb-5">
             <div className="flex items-center justify-center gap-4">
-              <div className="login-accent-glow flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#EAB308] hover:brightness-105">
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="login-accent-glow flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#EAB308] hover:brightness-105"
+                aria-label="Перейти на сторінку входу"
+              >
                 <Car className="h-7 w-7 text-[#0F172A]" />
-              </div>
+              </button>
               <h1 className="text-left text-5xl font-bold tracking-tight text-white">
                 Taxi <span className="text-[#EAB308]">839</span>
               </h1>
@@ -265,15 +270,21 @@ export default function CompleteRegistrationPage() {
 
               {error ? <div className={errorBoxClass}>{error}</div> : null}
 
-              <button type="submit" disabled={loading || !canSubmit} className={primaryButtonClass}>
+              <button
+                type="submit"
+                disabled={loading || !canSubmit}
+                className={`${primaryButtonClass} relative h-[48px] disabled:opacity-100`}
+              >
+                <span className={`inline-flex items-center gap-2 ${loading ? 'invisible' : ''}`}>
+                  <Save className="h-5 w-5" />
+                  Зберегти і продовжити
+                  <ArrowRight className="h-5 w-5" />
+                </span>
                 {loading ? (
-                  <Loader2 className="mx-auto h-5 w-5 animate-spin" />
-                ) : (
-                  <>
-                    Зберегти і продовжити
-                    <ArrowRight className="h-5 w-5" />
-                  </>
-                )}
+                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  </span>
+                ) : null}
               </button>
             </form>
           </div>
@@ -288,7 +299,9 @@ export default function CompleteRegistrationPage() {
                   <p className="flex min-h-9 items-center text-2xl font-bold leading-snug text-white">
                     {profileLoaded ? roleLabel : <Loader2 className="h-6 w-6 animate-spin" />}
                   </p>
-                  <p className="mt-1 text-xs leading-snug text-slate-400 sm:text-sm">Роль профілю</p>
+                  <p className="mt-1 flex min-h-5 items-center text-sm leading-snug text-slate-400">
+                    Роль профілю
+                  </p>
                 </div>
               </div>
             </div>
@@ -301,7 +314,9 @@ export default function CompleteRegistrationPage() {
                   <p className="flex min-h-9 items-center text-2xl font-bold tabular-nums text-white">
                     {profileLoaded ? `${formProgressPercent}%` : <Loader2 className="h-6 w-6 animate-spin" />}
                   </p>
-                  <p className="mt-1 text-xs leading-snug text-slate-400 sm:text-sm">Готовність профілю</p>
+                  <p className="mt-1 flex min-h-5 items-center text-sm leading-snug text-slate-400">
+                    Готовність профілю
+                  </p>
                 </div>
               </div>
             </div>
@@ -314,7 +329,10 @@ export default function CompleteRegistrationPage() {
       <div className="relative z-[1] hidden min-h-screen w-1/2 flex-col lg:flex">
         <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-visible p-6 sm:p-10">
           <div className="relative aspect-square w-full max-w-lg min-h-[280px] max-h-[min(72vh,520px)] overflow-visible">
-            <div className="absolute inset-0 z-[1] flex items-center justify-center">
+            <div className="absolute left-1/2 top-1/2 z-[3] h-[76%] w-[76%] -translate-x-1/2 -translate-y-1/2" aria-hidden>
+              <div className="login-taxi-glow h-full w-full rounded-full" />
+            </div>
+            <div className="absolute inset-0 z-[4] flex items-center justify-center">
               <svg
                 className="h-[76%] w-[76%] max-h-[min(48vh,400px)] max-w-[min(48vh,400px)] text-[#EAB308] opacity-[0.42]"
                 viewBox="0 0 24 24"

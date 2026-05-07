@@ -1,15 +1,17 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import CompleteRegistrationPage from './pages/CompleteRegistrationPage';
-import DriverDashboard from './pages/driver/DriverDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import ManagerLayout from './layouts/ManagerLayout';
+import DriverLayout from './layouts/DriverLayout';
 import WhitelistPage from './pages/manager/WhitelistPage';
 import ManagersPage from './pages/manager/ManagersPage';
 import DriversPage from './pages/manager/DriversPage';
 import SettingsPage from './pages/manager/SettingsPage';
 import RidesPage from './pages/manager/RidesPage';
 import DevelopmentPage from './pages/manager/DevelopmentPage';
+import DriverShiftPage from './pages/driver/DriverShiftPage';
+import DriverSettingsPage from './pages/driver/DriverSettingsPage';
 
 export default function App() {
   return (
@@ -31,7 +33,12 @@ export default function App() {
       </Route>
 
       <Route element={<ProtectedRoute requiredRole="Driver" />}>
-        <Route path="/driver/dashboard" element={<DriverDashboard />} />
+        <Route path="/driver" element={<DriverLayout />}>
+          <Route index element={<Navigate to="/driver/shift" replace />} />
+          <Route path="dashboard" element={<Navigate to="/driver/shift" replace />} />
+          <Route path="shift" element={<DriverShiftPage />} />
+          <Route path="settings" element={<DriverSettingsPage />} />
+        </Route>
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

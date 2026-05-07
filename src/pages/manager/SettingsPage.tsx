@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { AlertTriangle, Loader2, X } from 'lucide-react';
+import { AlertTriangle, Loader2, Save, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/axios';
 import { parseApiRole } from '../../utils/roles';
@@ -84,7 +84,7 @@ export default function SettingsPage() {
   return (
     <section className={pageCardClass}>
       <h2 className="text-xl font-semibold text-white">Налаштування</h2>
-      <p className="mt-2 text-sm text-slate-400">Системні параметри панелі керування.</p>
+      <p className="mt-2 text-sm text-slate-400">Персональні налаштування вебсервісу.</p>
 
       {error && (
         <div className="field-error-box mt-4">{error}</div>
@@ -168,9 +168,17 @@ export default function SettingsPage() {
                   <button
                     type="submit"
                     disabled={loading || confirmText !== 'ПІДТВЕРДИТИ' || !targetId}
-                    className="manager-accent-glow manager-primary-btn w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                    className="manager-accent-glow manager-primary-btn relative h-[48px] w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
                   >
-                    {loading ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : 'Підтвердити дію'}
+                    <span className={`inline-flex items-center gap-2 ${loading ? 'invisible' : ''}`}>
+                      <Save size={16} />
+                      Підтвердити дію
+                    </span>
+                    {loading ? (
+                      <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      </span>
+                    ) : null}
                   </button>
                   </form>
                 </div>
