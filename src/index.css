@@ -1,12 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-
 @layer base {
   *, *::before, *::after {
     box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: dark;
   }
 
   html, body, #root {
@@ -18,5 +22,369 @@
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  select,
+  option {
+    background-color: rgb(3 7 18);
+    color: #f9fafb;
+  }
+
+  select:focus,
+  select:focus-visible {
+    outline: none;
+  }
+
+  button:focus,
+  button:focus-visible {
+    outline: none;
+  }
+}
+
+@layer components {
+  .phone-field-wrap {
+    @apply flex items-center rounded-xl border border-white/10 bg-[#1E293B];
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .phone-field-wrap:focus-within {
+    border-color: rgba(234, 179, 8, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.78),
+      0 12px 40px rgba(234, 179, 8, 0.32);
+  }
+
+  /* Симетричний padding + line-height = висота рядка 14px усередині 40px (42px − рамка): вирівнює інпут і select */
+  .field-input {
+    @apply box-border block h-[42px] w-full appearance-none rounded-xl border border-white/10 bg-[#1E293B] px-4 text-sm text-white placeholder:text-slate-500;
+    padding-top: 13px;
+    padding-bottom: 13px;
+    line-height: 14px;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .field-input:disabled {
+    @apply cursor-not-allowed opacity-60 text-white;
+    -webkit-text-fill-color: #f8fafc;
+  }
+
+  .field-input:focus,
+  .field-input:focus-visible {
+    outline: none;
+    border-color: rgba(234, 179, 8, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.78),
+      0 12px 40px rgba(234, 179, 8, 0.32);
+  }
+
+  /* Помилки: ті самі габарити й типографіка, що .field-input; колір як у кнопки «Видалити» */
+  .field-error-box {
+    @apply box-border w-full rounded-xl px-4 text-sm;
+    min-height: 42px;
+    padding-top: 13px;
+    padding-bottom: 13px;
+    line-height: 14px;
+    border: 1px solid rgb(248 113 113);
+    background-color: rgba(239, 68, 68, 0.14);
+    color: rgb(248 113 113);
+  }
+
+  .field-select {
+    @apply box-border h-[42px] w-full appearance-none rounded-xl border border-white/10 bg-[#1E293B] bg-no-repeat pl-4 pr-10 text-sm text-white;
+    padding-top: 13px;
+    padding-bottom: 13px;
+    line-height: 14px;
+    color-scheme: dark;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.3s ease;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-position: right 0.75rem center;
+    background-size: 1rem 1rem;
+  }
+
+  .field-select:focus,
+  .field-select:focus-visible {
+    outline: none;
+    border-color: rgba(234, 179, 8, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.78),
+      0 12px 40px rgba(234, 179, 8, 0.32);
+  }
+
+  .field-select:disabled {
+    @apply cursor-not-allowed opacity-60 text-white;
+    -webkit-text-fill-color: #f8fafc;
+    /* Явний фон = той самий токен, щоб не відрізнявся від інших полів через UA disabled */
+    background-color: #1e293b !important;
+  }
+
+  .field-select option {
+    @apply bg-[#0F172A] text-white;
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+  }
+
+  .field-select option:checked {
+    background: #1e293b linear-gradient(0deg, #1e293b 0%, #1e293b 100%);
+    color: #eab308;
+  }
+
+  .field-select option:hover {
+    background: #1e293b linear-gradient(0deg, #1e293b 0%, #1e293b 100%);
+    color: #f8fafc;
+  }
+
+  @keyframes login-route-march-seamless {
+    from {
+      stroke-dashoffset: 0;
+    }
+    to {
+      stroke-dashoffset: -2800;
+    }
+  }
+
+  .login-route-line {
+    fill: none;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .login-route-line--a {
+    stroke-dasharray: 32 24;
+    animation: login-route-march-seamless 28s linear infinite;
+    opacity: 0.55;
+  }
+
+  .login-route-line--b {
+    stroke-dasharray: 22 18;
+    animation: login-route-march-seamless 36s linear infinite;
+    animation-delay: -6s;
+    opacity: 0.42;
+  }
+
+  .login-route-line--c {
+    stroke-dasharray: 40 30;
+    animation: login-route-march-seamless 48s linear infinite;
+    animation-delay: -12s;
+    opacity: 0.38;
+  }
+
+  .login-accent-glow {
+    box-shadow: none;
+    transition:
+      filter 300ms ease,
+      box-shadow 300ms ease,
+      opacity 300ms ease;
+  }
+
+  .login-field-outline {
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .login-field-outline:focus-within {
+    border-color: rgba(234, 179, 8, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.78),
+      0 12px 40px rgba(234, 179, 8, 0.32);
+  }
+
+  .login-accent-glow:hover:not(:disabled),
+  .login-accent-glow:focus-visible:not(:disabled) {
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.78),
+      0 12px 40px rgba(234, 179, 8, 0.32);
+  }
+
+  .manager-accent-glow {
+    box-shadow: none;
+  }
+
+  .manager-accent-glow:hover:not(:disabled),
+  .manager-accent-glow:focus-visible:not(:disabled) {
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.78),
+      0 12px 40px rgba(234, 179, 8, 0.32);
+  }
+
+  .manager-primary-btn {
+    border: 1px solid transparent;
+    box-shadow: none;
+  }
+
+  .manager-primary-btn:hover:not(:disabled),
+  .manager-primary-btn:focus-visible:not(:disabled) {
+    filter: none;
+    border-color: rgba(234, 179, 8, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.78),
+      0 12px 40px rgba(234, 179, 8, 0.32);
+  }
+
+  .manager-field-outline {
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .manager-field-outline:focus-within {
+    border-color: rgba(234, 179, 8, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.78),
+      0 12px 40px rgba(234, 179, 8, 0.32);
+  }
+
+  /* +380 | цифри — один фон (#1E293B), один колір тексту; для блокування — opacity на всьому рядку */
+  .manager-phone-field {
+    @apply manager-field-outline flex h-[42px] items-stretch overflow-hidden rounded-xl border border-white/10 bg-[#1E293B];
+  }
+
+  .manager-phone-field--dimmed {
+    @apply opacity-60;
+  }
+
+  .manager-phone-field__prefix {
+    @apply flex shrink-0 items-center border-r border-white/10 bg-[#1E293B] px-4 font-mono text-sm text-white;
+    color: #f8fafc;
+    -webkit-text-fill-color: #f8fafc;
+  }
+
+  .manager-phone-field__input {
+    @apply min-h-0 min-w-0 flex-1 border-0 bg-[#1E293B] px-4 font-mono text-sm text-white outline-none ring-0 focus:outline-none focus:ring-0;
+    padding-top: 13px;
+    padding-bottom: 13px;
+    line-height: 14px;
+    color: #f8fafc;
+    -webkit-text-fill-color: #f8fafc;
+  }
+
+  /* -webkit-text-fill-color вище ламає колір placeholder у Chrome; як у .field-input через slate-500 */
+  .manager-phone-field__input::placeholder {
+    color: #64748b;
+    -webkit-text-fill-color: #64748b;
+    opacity: 1;
+  }
+
+  .manager-phone-field__input:disabled {
+    @apply cursor-not-allowed text-white;
+    /* UA на disabled input часто додає темніший fill тільки під полем вводу — префікс +380 лишається світлішим */
+    -webkit-text-fill-color: #f8fafc;
+    opacity: 1;
+    background-color: #1e293b !important;
+    color-scheme: dark;
+  }
+
+  .manager-phone-field--dimmed .manager-phone-field__prefix,
+  .manager-phone-field--dimmed .manager-phone-field__input {
+    color: #f8fafc;
+    -webkit-text-fill-color: #f8fafc;
+  }
+
+  .manager-phone-field--dimmed .manager-phone-field__input::placeholder {
+    color: #64748b;
+    -webkit-text-fill-color: #64748b;
+  }
+
+  .manager-icon-btn {
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 0.5rem;
+    color: rgb(203 213 225);
+    box-shadow: none;
+    transition:
+      color 0.2s ease,
+      border-color 0.2s ease,
+      background-color 0.2s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .manager-icon-btn:hover:not(:disabled),
+  .manager-icon-btn:focus-visible:not(:disabled) {
+    color: #eab308;
+    border-color: currentColor;
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.78),
+      0 12px 40px rgba(234, 179, 8, 0.32);
+  }
+
+  .manager-icon-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  .manager-icon-btn--danger {
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgb(203 213 225);
+    background-color: rgba(255, 255, 255, 0.05);
+    box-shadow: none;
+  }
+
+  .manager-icon-btn--danger:hover:not(:disabled),
+  .manager-icon-btn--danger:focus-visible:not(:disabled) {
+    color: rgb(248 113 113);
+    border-color: currentColor;
+    background-color: rgba(239, 68, 68, 0.18);
+    box-shadow:
+      0 0 0 1px rgba(248, 113, 113, 0.78),
+      0 12px 40px rgba(239, 68, 68, 0.32);
+  }
+
+  .manager-status-chip {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.05);
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .manager-status-chip--interactive {
+    cursor: default;
+  }
+
+  .manager-status-chip--interactive[data-status='online']:hover,
+  .manager-status-chip--interactive[data-status='online']:focus-visible {
+    border-color: rgba(16, 185, 129, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(16, 185, 129, 0.78),
+      0 12px 40px rgba(16, 185, 129, 0.32);
+  }
+
+  .manager-status-chip--interactive[data-status='inRide']:hover,
+  .manager-status-chip--interactive[data-status='inRide']:focus-visible {
+    border-color: rgba(14, 165, 233, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(14, 165, 233, 0.78),
+      0 12px 40px rgba(14, 165, 233, 0.32);
+  }
+
+  .manager-status-chip--interactive[data-status='created']:hover,
+  .manager-status-chip--interactive[data-status='created']:focus-visible {
+    border-color: rgba(234, 179, 8, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(234, 179, 8, 0.78),
+      0 12px 40px rgba(234, 179, 8, 0.32);
+  }
+
+  .manager-status-chip--interactive[data-status='accepted']:hover,
+  .manager-status-chip--interactive[data-status='accepted']:focus-visible {
+    border-color: rgba(139, 92, 246, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(139, 92, 246, 0.78),
+      0 12px 40px rgba(139, 92, 246, 0.32);
+  }
+
+  .manager-status-chip--interactive[data-status='offline']:hover,
+  .manager-status-chip--interactive[data-status='offline']:focus-visible {
+    border-color: rgba(156, 163, 175, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(156, 163, 175, 0.78),
+      0 12px 40px rgba(107, 114, 128, 0.28);
   }
 }

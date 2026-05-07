@@ -1,4 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom';
+import { JWT_BASE64URL_DASH_REGEX, JWT_BASE64URL_UNDERSCORE_REGEX } from '../utils/regex';
 
 type AllowedRole = 'Manager' | 'Driver' | 'SuperAdmin';
 
@@ -9,7 +10,11 @@ interface ProtectedRouteProps {
 function decodeJwtPayload(token: string): Record<string, string> | null {
   try {
     const payloadBase64 = token.split('.')[1];
-    const decoded = atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/'));
+    const decoded = atob(
+      payloadBase64
+        .replace(JWT_BASE64URL_DASH_REGEX, '+')
+        .replace(JWT_BASE64URL_UNDERSCORE_REGEX, '/')
+    );
     return JSON.parse(decoded);
   } catch {
     return null;
