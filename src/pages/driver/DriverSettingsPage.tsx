@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react';
+import { Loader2, Settings } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import FormSwitch from '../../components/FormSwitch';
 import { api, getApiErrorMessage } from '../../api/axios';
@@ -8,6 +8,7 @@ interface DriverPresenceSettingsDto {
   isAutoStatusEnabled: boolean;
   currentStatus: UserStatus;
   isManualControlAllowed: boolean;
+  profileId: number;
 }
 
 const pageCardClass =
@@ -62,9 +63,14 @@ export default function DriverSettingsPage() {
 
   return (
     <section className={pageCardClass}>
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-white">Налаштування</h2>
-        <p className="mt-1 text-sm text-slate-400">Персональні налаштування вебсервісу.</p>
+      <div className="mb-6 flex items-start gap-3">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#EAB308]/15 text-[#EAB308]">
+          <Settings className="h-7 w-7" strokeWidth={2} />
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold text-white">Налаштування</h2>
+          <p className="mt-1 text-sm text-slate-400">Персональні налаштування вебсервісу.</p>
+        </div>
       </div>
 
       {error ? <div className="field-error-box mb-4">{error}</div> : null}

@@ -1,4 +1,4 @@
-import { Car, LogOut, Power, Settings } from 'lucide-react';
+import { BarChart3, Car, LogOut, Power, Settings } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import { useEffect } from 'react';
@@ -8,6 +8,7 @@ import { api } from '../api/axios';
 
 const links = [
   { to: '/driver/shift', label: 'Зміна', icon: Power },
+  { to: '/driver/analytics', label: 'Аналітика', icon: BarChart3 },
   { to: '/driver/settings', label: 'Налаштування', icon: Settings }
 ];
 

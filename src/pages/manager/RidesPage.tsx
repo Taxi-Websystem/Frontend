@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Activity, Ban, CheckCircle2, Eye, Loader2, Pencil, Plus, Save, Trash2, X } from 'lucide-react';
+import { Activity, Ban, CheckCircle2, Eye, Loader2, Pencil, Plus, Route, Save, Trash2, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, getApiErrorMessage } from '../../api/axios';
 import { getCurrentRole } from '../../utils/auth';
@@ -12,6 +12,7 @@ import {
   RATING_DUPLICATED_SEPARATOR_REGEX,
   RATING_EDITABLE_REGEX
 } from '../../utils/regex';
+import { managerTablePad } from './managerTableStyles';
 
 type RideStatus = 'Created' | 'Accepted' | 'InRide' | 'Completed' | 'Canceled';
 
@@ -27,6 +28,9 @@ interface RideItem {
   startTime: string | null;
   endTime: string | null;
   createdAt: string;
+  distanceKm: number;
+  price: number;
+  driverProfit: number | null;
 }
 
 interface DriverOption {
@@ -45,6 +49,7 @@ interface RideFormState {
   toAddress: string;
   startTime: string;
   endTime: string;
+  distanceKm: string;
 }
 
 const defaultForm: RideFormState = {
@@ -54,7 +59,8 @@ const defaultForm: RideFormState = {
   fromAddress: '',
   toAddress: '',
   startTime: '',
-  endTime: ''
+  endTime: '',
+  distanceKm: '0'
 };
 
 const pageCardClass =
@@ -116,7 +122,10 @@ export default function RidesPage() {
   const isRatingValid =
     ratingRaw.length === 0 ||
     RATING_1_TO_5_DECIMAL_REGEX.test(ratingRaw);
-  const isFormValid = form.fromAddress.trim().length > 0 && form.toAddress.trim().length > 0 && isRatingValid;
+  const distanceNum = Number(form.distanceKm.replace(',', '.'));
+  const isDistanceValid = !Number.isNaN(distanceNum) && distanceNum >= 0;
+  const isFormValid =
+    form.fromAddress.trim().length > 0 && form.toAddress.trim().length > 0 && isRatingValid && isDistanceValid;
   const isDriverLockedOnEdit =
     editing !== null &&
     (editing.status === 'InRide' || editing.status === 'Canceled' || editing.status === 'Completed');
@@ -235,7 +244,8 @@ export default function RidesPage() {
       fromAddress: ride.fromAddress,
       toAddress: ride.toAddress,
       startTime: ride.startTime ? ride.startTime.slice(0, 16) : '',
-      endTime: ride.endTime ? ride.endTime.slice(0, 16) : ''
+      endTime: ride.endTime ? ride.endTime.slice(0, 16) : '',
+      distanceKm: String(ride.distanceKm ?? 0)
     });
     setIsModalOpen(true);
   };
@@ -261,7 +271,8 @@ export default function RidesPage() {
       fromAddress: form.fromAddress.trim(),
       toAddress: form.toAddress.trim(),
       startTime: form.startTime ? new Date(form.startTime).toISOString() : null,
-      endTime: form.endTime ? new Date(form.endTime).toISOString() : null
+      endTime: form.endTime ? new Date(form.endTime).toISOString() : null,
+      distanceKm: Number(form.distanceKm.replace(',', '.'))
     };
 
     try {
@@ -290,9 +301,14 @@ export default function RidesPage() {
   return (
     <section className={pageCardClass}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-white">Поїздки</h2>
-          <p className="mt-1 text-sm text-slate-400">Список поїздок.</p>
+        <div className="flex items-start gap-3">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#EAB308]/15 text-[#EAB308]">
+            <Route className="h-7 w-7" strokeWidth={2} />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-white">Поїздки</h2>
+            <p className="mt-1 text-sm text-slate-400">Список поїздок.</p>
+          </div>
         </div>
         <button
           type="button"
@@ -353,7 +369,7 @@ export default function RidesPage() {
       )}
 
       {loading ? (
-        <div className="py-8 text-center text-slate-400">
+        <div className="text-center text-slate-400">
           <Loader2 className="mx-auto h-5 w-5 animate-spin" />
         </div>
       ) : (
@@ -361,14 +377,17 @@ export default function RidesPage() {
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-slate-400">
-                <th className="px-3 py-2">ID</th>
-                <th className="px-3 py-2">Статус</th>
-                <th className="px-3 py-2">Водій</th>
-                <th className="px-3 py-2">Звідки</th>
-                <th className="px-3 py-2">Куди</th>
-                <th className="px-3 py-2">Час у дорозі</th>
-                <th className="px-3 py-2 text-right">Рейтинг</th>
-                <th className="px-3 py-2 text-right">Дії</th>
+                <th className={managerTablePad}>ID</th>
+                <th className={managerTablePad}>Статус</th>
+                <th className={managerTablePad}>Водій</th>
+                <th className={managerTablePad}>Звідки</th>
+                <th className={managerTablePad}>Куди</th>
+                <th className={`${managerTablePad} text-right`}>Км</th>
+                <th className={`${managerTablePad} text-right`}>Ціна</th>
+                <th className={`${managerTablePad} text-right tabular-nums`}>Прибуток</th>
+                <th className={`${managerTablePad} whitespace-nowrap`}>Час у дорозі</th>
+                <th className={`${managerTablePad} text-right`}>Рейтинг</th>
+                <th className={`${managerTablePad} text-right`}>Дії</th>
               </tr>
             </thead>
             <tbody>
@@ -377,8 +396,8 @@ export default function RidesPage() {
                 const driverLabel = ride.driverName || ride.driverPhoneNumber || '—';
                 return (
                   <tr key={ride.id} className="border-b border-white/10 text-slate-200">
-                    <td className="px-3 py-2 tabular-nums">{ride.id}</td>
-                    <td className="px-3 py-2">
+                    <td className={`${managerTablePad} tabular-nums`}>{ride.id}</td>
+                    <td className={managerTablePad}>
                       <span
                         className="manager-status-chip manager-status-chip--interactive inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs"
                         data-status={chip.kind}
@@ -387,7 +406,7 @@ export default function RidesPage() {
                         {chip.label}
                       </span>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className={managerTablePad}>
                       {driverLabel === '—' ? (
                         '—'
                       ) : (
@@ -396,13 +415,22 @@ export default function RidesPage() {
                         </Link>
                       )}
                     </td>
-                    <td className="max-w-xs truncate px-3 py-2">{ride.fromAddress}</td>
-                    <td className="max-w-xs truncate px-3 py-2">{ride.toAddress}</td>
-                    <td className="px-3 py-2">{formatDuration(ride.startTime, ride.endTime)}</td>
-                    <td className="px-3 py-2 text-right font-medium tabular-nums text-[#EAB308]">
+                    <td className={`max-w-xs truncate ${managerTablePad}`}>{ride.fromAddress}</td>
+                    <td className={`max-w-xs truncate ${managerTablePad}`}>{ride.toAddress}</td>
+                    <td className={`${managerTablePad} text-right tabular-nums`}>
+                      {Number(ride.distanceKm).toFixed(2)}
+                    </td>
+                    <td className={`${managerTablePad} text-right tabular-nums`}>{Number(ride.price).toFixed(2)}</td>
+                    <td className={`${managerTablePad} text-right tabular-nums`}>
+                      {ride.driverProfit != null ? Number(ride.driverProfit).toFixed(2) : '—'}
+                    </td>
+                    <td className={`${managerTablePad} whitespace-nowrap tabular-nums`}>
+                      {formatDuration(ride.startTime, ride.endTime)}
+                    </td>
+                    <td className={`${managerTablePad} text-right font-medium tabular-nums text-[#EAB308]`}>
                       {ride.rating != null ? Number(ride.rating).toFixed(2) : '—'}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className={managerTablePad}>
                       <div className="flex items-center justify-end gap-2">
                         <Link to="/manager/development" title="На карті" className="manager-icon-btn">
                           <Eye size={14} />
@@ -505,6 +533,19 @@ export default function RidesPage() {
                   </label>
 
                 <label className={fieldLabelClass}>
+                  Відстань (км)
+                  <input
+                    required
+                    type="text"
+                    inputMode="decimal"
+                    value={form.distanceKm}
+                    onChange={(event) => setForm((prev) => ({ ...prev, distanceKm: event.target.value }))}
+                    className="mt-2 field-input tabular-nums"
+                    placeholder="0"
+                  />
+                </label>
+
+                <label className={fieldLabelClass}>
                   Звідки
                   <input
                     required
@@ -550,7 +591,7 @@ export default function RidesPage() {
                 <button
                   type="submit"
                   disabled={saving || !isFormValid}
-                  className="manager-accent-glow manager-primary-btn relative mt-1 h-[48px] w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                  className="manager-accent-glow manager-primary-btn relative mt-1 w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
                 >
                   <span className={`inline-flex items-center gap-2 ${saving ? 'invisible' : ''}`}>
                     <Save size={16} />

@@ -273,7 +273,7 @@ export default function CompleteRegistrationPage() {
               <button
                 type="submit"
                 disabled={loading || !canSubmit}
-                className={`${primaryButtonClass} relative h-[48px] disabled:opacity-100`}
+                className={`${primaryButtonClass} relative disabled:opacity-100`}
               >
                 <span className={`inline-flex items-center gap-2 ${loading ? 'invisible' : ''}`}>
                   <Save className="h-5 w-5" />

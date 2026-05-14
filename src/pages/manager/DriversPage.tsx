@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import { BarChart2, Loader2, Pencil, Plus, Save, Star, Trash2, UserRoundCheck, X } from 'lucide-react';
+import { CarFront, Loader2, Pencil, Plus, Save, SquareParking, Star, Trash2, UserRoundCheck, X } from 'lucide-react';
 import { api, getApiErrorMessage } from '../../api/axios';
 import { getCurrentRole } from '../../utils/auth';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -11,6 +11,7 @@ import { formatLicensePlateInput, LICENSE_PLATE_REGEX } from '../../utils/licens
 import { sanitizeNameUa } from '../../utils/nameFields';
 import { DIGITS_ONLY_REGEX } from '../../utils/regex';
 import { getRoleLabel } from '../../utils/roles';
+import { managerTablePad } from './managerTableStyles';
 import { getUserStatusLabel, type UserStatus } from '../../utils/userStatus';
 
 interface DriverListItem {
@@ -290,9 +291,14 @@ export default function DriversPage() {
   return (
     <section className={pageCardClass}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-white">Водії</h2>
-          <p className="mt-1 text-sm text-slate-400">Список водіїв.</p>
+        <div className="flex items-start gap-3">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#EAB308]/15 text-[#EAB308]">
+            <SquareParking className="h-7 w-7" strokeWidth={2} />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-white">Водії</h2>
+            <p className="mt-1 text-sm text-slate-400">Список водіїв.</p>
+          </div>
         </div>
         <button
           type="button"
@@ -311,7 +317,7 @@ export default function DriversPage() {
           'Водіїв онлайн'
         )}
         {statMiniCard(
-          <BarChart2 className="h-7 w-7" />,
+          <CarFront className="h-7 w-7" strokeWidth={2} />,
           loading ? <Loader2 className="h-6 w-6 animate-spin" /> : String(stats.totalTrips),
           'Поїздок загалом'
         )}
@@ -329,7 +335,7 @@ export default function DriversPage() {
       )}
 
       {loading ? (
-        <div className="py-8 text-center text-slate-400">
+        <div className="text-center text-slate-400">
           <Loader2 className="mx-auto h-5 w-5 animate-spin" />
         </div>
       ) : (
@@ -337,13 +343,13 @@ export default function DriversPage() {
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-slate-400">
-                <th className="px-3 py-2">ID</th>
-                <th className="px-3 py-2">Статус</th>
-                <th className="px-3 py-2">Ім'я</th>
-                <th className="px-3 py-2">Номер телефону</th>
-                <th className="px-3 py-2 text-right tabular-nums">Поїздки</th>
-                <th className="px-3 py-2 text-right tabular-nums">Рейтинг</th>
-                <th className="px-3 py-2 text-right">Дії</th>
+                <th className={managerTablePad}>ID</th>
+                <th className={managerTablePad}>Статус</th>
+                <th className={managerTablePad}>Ім'я</th>
+                <th className={managerTablePad}>Номер телефону</th>
+                <th className={`${managerTablePad} text-right tabular-nums`}>Поїздки</th>
+                <th className={`${managerTablePad} text-right tabular-nums`}>Рейтинг</th>
+                <th className={`${managerTablePad} text-right`}>Дії</th>
               </tr>
             </thead>
             <tbody>
@@ -352,8 +358,8 @@ export default function DriversPage() {
                 const statusKind = userStatusToPulseKind(status);
                 return (
                   <tr key={item.id} className="border-b border-white/10 text-slate-200">
-                    <td className="px-3 py-2">{item.userId}</td>
-                    <td className="px-3 py-2">
+                    <td className={managerTablePad}>{item.userId}</td>
+                    <td className={managerTablePad}>
                       <span
                         className="manager-status-chip manager-status-chip--interactive inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs"
                         data-status={statusKind}
@@ -362,13 +368,13 @@ export default function DriversPage() {
                         {getUserStatusLabel(status)}
                       </span>
                     </td>
-                    <td className="px-3 py-2">{item.name}</td>
-                    <td className="px-3 py-2 font-mono">{item.phoneNumber}</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-white">{item.tripCount ?? 0}</td>
-                    <td className="px-3 py-2 text-right font-medium tabular-nums text-[#EAB308]">
+                    <td className={managerTablePad}>{item.name}</td>
+                    <td className={`${managerTablePad} font-mono`}>{item.phoneNumber}</td>
+                    <td className={`${managerTablePad} text-right tabular-nums text-white`}>{item.tripCount ?? 0}</td>
+                    <td className={`${managerTablePad} text-right font-medium tabular-nums text-[#EAB308]`}>
                       {formatRating(item.averageRating)}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className={managerTablePad}>
                       <div className="flex items-center justify-end gap-2">
                         <button
                           type="button"
@@ -558,7 +564,7 @@ export default function DriversPage() {
               <button
                 type="submit"
                 disabled={saving || !isFormValid}
-                className="manager-accent-glow manager-primary-btn relative mt-1 h-[48px] w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                className="manager-accent-glow manager-primary-btn relative mt-1 w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
                 <span className={`inline-flex items-center gap-2 ${saving ? 'invisible' : ''}`}>
                   <Save size={16} />

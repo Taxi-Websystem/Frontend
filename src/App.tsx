@@ -11,6 +11,7 @@ import SettingsPage from './pages/manager/SettingsPage';
 import RidesPage from './pages/manager/RidesPage';
 import DevelopmentPage from './pages/manager/DevelopmentPage';
 import DriverShiftPage from './pages/driver/DriverShiftPage';
+import AnalyticsPage from './pages/driver/AnalyticsPage';
 import DriverSettingsPage from './pages/driver/DriverSettingsPage';
 
 export default function App() {
@@ -37,6 +38,7 @@ export default function App() {
           <Route index element={<Navigate to="/driver/shift" replace />} />
           <Route path="dashboard" element={<Navigate to="/driver/shift" replace />} />
           <Route path="shift" element={<DriverShiftPage />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="settings" element={<DriverSettingsPage />} />
         </Route>
       </Route>

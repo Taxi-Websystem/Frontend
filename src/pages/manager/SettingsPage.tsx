@@ -1,10 +1,17 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { AlertTriangle, Loader2, Save, X } from 'lucide-react';
+import { AlertTriangle, Loader2, Save, Settings, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../api/axios';
+import { api, getApiErrorMessage } from '../../api/axios';
 import { parseApiRole } from '../../utils/roles';
 import { getCurrentRole, getCurrentUserId } from '../../utils/auth';
 import ModalPortal from '../../components/ModalPortal';
+
+interface FinancialSettingsResponse {
+  baseFare: number;
+  costPerKm: number;
+  platformFixedFee: number;
+  platformFeePercentage: number;
+}
 
 interface ManagerOption {
   id: number;
@@ -19,7 +26,18 @@ export default function SettingsPage() {
   const role = getCurrentRole();
   const currentUserId = getCurrentUserId();
   const isSuperAdmin = role === 'SuperAdmin';
+  const isManager = role === 'Manager';
 
+  const [financialLoading, setFinancialLoading] = useState(true);
+  const [financialSaving, setFinancialSaving] = useState(false);
+  const [financialError, setFinancialError] = useState('');
+  const [financialSuccess, setFinancialSuccess] = useState('');
+  const [tariffForm, setTariffForm] = useState({
+    baseFare: '',
+    costPerKm: '',
+    platformFixedFee: '',
+    feePercent: ''
+  });
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [confirmText, setConfirmText] = useState('');
   const [targetId, setTargetId] = useState('');
@@ -48,11 +66,73 @@ export default function SettingsPage() {
     void loadManagers();
   }, [isSuperAdmin]);
 
+  useEffect(() => {
+    if (!isSuperAdmin && !isManager) {
+      setFinancialLoading(false);
+      return;
+    }
+
+    const loadTariffs = async () => {
+      setFinancialLoading(true);
+      setFinancialError('');
+      try {
+        const response = await api.get<FinancialSettingsResponse>('/settings');
+        const row = response.data;
+        setTariffForm({
+          baseFare: String(row.baseFare),
+          costPerKm: String(row.costPerKm),
+          platformFixedFee: String(row.platformFixedFee),
+          feePercent: String(Number((row.platformFeePercentage * 100).toFixed(2)))
+        });
+      } catch (err) {
+        setFinancialError(getApiErrorMessage(err, 'Не вдалося завантажити тарифи.'));
+      } finally {
+        setFinancialLoading(false);
+      }
+    };
+
+    void loadTariffs();
+  }, [isManager, isSuperAdmin]);
+
   const closeTransferModal = () => {
     setIsTransferOpen(false);
     setConfirmText('');
     setTargetId('');
     setLoading(false);
+  };
+
+  const saveTariffs = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!isSuperAdmin) return;
+
+    setFinancialSaving(true);
+    setFinancialError('');
+    setFinancialSuccess('');
+
+    const baseFare = Number(tariffForm.baseFare.replace(',', '.'));
+    const costPerKm = Number(tariffForm.costPerKm.replace(',', '.'));
+    const platformFixedFee = Number(tariffForm.platformFixedFee.replace(',', '.'));
+    const feePercent = Number(tariffForm.feePercent.replace(',', '.'));
+
+    if ([baseFare, costPerKm, platformFixedFee, feePercent].some((n) => Number.isNaN(n))) {
+      setFinancialError('Перевірте коректність числових полів.');
+      setFinancialSaving(false);
+      return;
+    }
+
+    try {
+      await api.put('/settings', {
+        baseFare,
+        costPerKm,
+        platformFixedFee,
+        platformFeePercentage: feePercent / 100
+      });
+      setFinancialSuccess('Тарифи збережено.');
+    } catch (err) {
+      setFinancialError(getApiErrorMessage(err, 'Не вдалося зберегти тарифи.'));
+    } finally {
+      setFinancialSaving(false);
+    }
   };
 
   const transferSuperAdmin = async (e: FormEvent) => {
@@ -80,11 +160,21 @@ export default function SettingsPage() {
   const pageCardClass =
     'rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-xl sm:p-8';
   const fieldLabelClass = 'mb-1 block text-sm font-medium text-slate-300';
+  /** Той самий фон і обводка, що рядок «Автоматичне визначення присутності» (FormSwitch). */
+  const financialInputClass =
+    'mt-2 field-input manager-field-outline bg-[#1E293B] tabular-nums disabled:cursor-not-allowed disabled:opacity-60';
 
   return (
     <section className={pageCardClass}>
-      <h2 className="text-xl font-semibold text-white">Налаштування</h2>
-      <p className="mt-2 text-sm text-slate-400">Персональні налаштування вебсервісу.</p>
+      <div className="mb-6 flex items-start gap-3">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#EAB308]/15 text-[#EAB308]">
+          <Settings className="h-7 w-7" strokeWidth={2} />
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold text-white">Налаштування</h2>
+          <p className="mt-2 text-sm text-slate-400">Персональні (і не тільки) налаштування вебсервісу.</p>
+        </div>
+      </div>
 
       {error && (
         <div className="field-error-box mt-4">{error}</div>
@@ -95,25 +185,109 @@ export default function SettingsPage() {
         </div>
       )}
 
+      {(isManager || isSuperAdmin) && (
+        <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm sm:p-5">
+          <h3 className="text-sm font-semibold text-white">Фінансові налаштування</h3>
+          <p className="mt-1 text-xs text-slate-400">
+            Подача, вартість за км, фіксований збір платформи та відсоток комісії (для розрахунку поїздок).
+          </p>
+
+          {financialError ? <div className="field-error-box mt-4">{financialError}</div> : null}
+          {financialSuccess ? (
+            <div className="mt-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+              {financialSuccess}
+            </div>
+          ) : null}
+
+          {financialLoading ? (
+            <div className="mt-4 text-center text-slate-400">
+              <Loader2 className="mx-auto h-5 w-5 animate-spin" />
+            </div>
+          ) : (
+            <form onSubmit={(e) => void saveTariffs(e)} className="mt-6 space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <label className={fieldLabelClass}>
+                  Подача (грн)
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    disabled={!isSuperAdmin}
+                    value={tariffForm.baseFare}
+                    onChange={(event) => setTariffForm((p) => ({ ...p, baseFare: event.target.value }))}
+                    className={financialInputClass}
+                  />
+                </label>
+                <label className={fieldLabelClass}>
+                  Вартість за км (грн)
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    disabled={!isSuperAdmin}
+                    value={tariffForm.costPerKm}
+                    onChange={(event) => setTariffForm((p) => ({ ...p, costPerKm: event.target.value }))}
+                    className={financialInputClass}
+                  />
+                </label>
+                <label className={fieldLabelClass}>
+                  Фіксований збір (грн)
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    disabled={!isSuperAdmin}
+                    value={tariffForm.platformFixedFee}
+                    onChange={(event) => setTariffForm((p) => ({ ...p, platformFixedFee: event.target.value }))}
+                    className={financialInputClass}
+                  />
+                </label>
+                <label className={fieldLabelClass}>
+                  Комісія (%)
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    disabled={!isSuperAdmin}
+                    value={tariffForm.feePercent}
+                    onChange={(event) => setTariffForm((p) => ({ ...p, feePercent: event.target.value }))}
+                    className={financialInputClass}
+                  />
+                </label>
+              </div>
+              {isSuperAdmin ? (
+                <button
+                  type="submit"
+                  disabled={financialSaving}
+                  className="manager-accent-glow manager-primary-btn relative mt-2 inline-flex w-full max-w-xs items-center justify-center rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none sm:w-auto"
+                >
+                  <span className={`inline-flex items-center gap-2 ${financialSaving ? 'invisible' : ''}`}>
+                    <Save size={16} />
+                    Зберегти тарифи
+                  </span>
+                  {financialSaving ? (
+                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    </span>
+                  ) : null}
+                </button>
+              ) : null}
+            </form>
+          )}
+        </div>
+      )}
+
       {isSuperAdmin && (
         <>
           <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="mt-0.5 text-[#EAB308]" size={18} />
-              <div>
-                <h3 className="text-sm font-semibold text-white">Передати роль Адміністратора</h3>
-                <p className="mt-1 text-sm text-slate-300">
-                  Незворотна дія: роль Адміністратора буде змінена на Менеджера.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setIsTransferOpen(true)}
-                  className="manager-accent-glow manager-primary-btn mt-3 rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
-                >
-                  Розпочати процедуру
-                </button>
-              </div>
-            </div>
+            <h3 className="text-sm font-semibold text-white">Роль Адміністратора</h3>
+            <p className="mt-1 text-xs text-slate-400">
+              Незворотна дія: роль Адміністратора буде змінена на Менеджера.
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsTransferOpen(true)}
+              className="manager-accent-glow manager-primary-btn mt-3 inline-flex w-full max-w-xs items-center justify-center gap-2 rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none sm:w-auto"
+            >
+              <AlertTriangle size={16} strokeWidth={2} aria-hidden />
+              Передати роль
+            </button>
           </div>
 
           {isTransferOpen && (
@@ -168,7 +342,7 @@ export default function SettingsPage() {
                   <button
                     type="submit"
                     disabled={loading || confirmText !== 'ПІДТВЕРДИТИ' || !targetId}
-                    className="manager-accent-glow manager-primary-btn relative h-[48px] w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                    className="manager-accent-glow manager-primary-btn relative w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
                   >
                     <span className={`inline-flex items-center gap-2 ${loading ? 'invisible' : ''}`}>
                       <Save size={16} />
