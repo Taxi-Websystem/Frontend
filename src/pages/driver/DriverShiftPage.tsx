@@ -1,8 +1,8 @@
-import { Loader2, Power, UserRoundCheck, Wifi, WifiOff } from 'lucide-react';
+import { Loader2, Pause, Play, Power, UserRoundCheck, Wifi, WifiOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { api, getApiErrorMessage } from '../../api/axios';
 import { getCurrentUserId } from '../../utils/auth';
-import { getUserStatusLabel, type UserStatus } from '../../utils/userStatus';
+import { getUserStatusLabel, parseUserStatus, type UserStatus } from '../../utils/userStatus';
 
 interface DriverPresenceSettingsDto {
   isAutoStatusEnabled: boolean;
@@ -19,7 +19,14 @@ export default function DriverShiftPage() {
   const [state, setState] = useState<DriverPresenceSettingsDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [breakSaving, setBreakSaving] = useState(false);
+  const [activeRideStatus, setActiveRideStatus] = useState<'Accepted' | 'InRide' | null>(null);
   const [error, setError] = useState('');
+
+  const normalizePresence = (row: DriverPresenceSettingsDto): DriverPresenceSettingsDto => ({
+    ...row,
+    currentStatus: parseUserStatus(row.currentStatus as string | number)
+  });
 
   const load = async (silentError = false) => {
     setLoading(true);
@@ -28,7 +35,7 @@ export default function DriverShiftPage() {
     }
     try {
       const response = await api.get<DriverPresenceSettingsDto>('/presence/settings');
-      setState(response.data);
+      setState(normalizePresence(response.data));
       return true;
     } catch (err) {
       if (!silentError) {
@@ -48,8 +55,6 @@ export default function DriverShiftPage() {
         if (ok || cancelled) {
           return;
         }
-
-        // На першому вході можливий короткий race, даємо бекенду підняти сесію/SignalR.
         await new Promise((resolve) => window.setTimeout(resolve, 600));
       }
     };
@@ -84,23 +89,57 @@ export default function DriverShiftPage() {
         return;
       }
 
-      setState((prev) => (prev ? { ...prev, currentStatus: detail.status } : prev));
+      setState((prev) =>
+        prev ? { ...prev, currentStatus: parseUserStatus(detail.status as string | number) } : prev
+      );
     };
 
     window.addEventListener('presence:changed', onPresenceChanged as EventListener);
     return () => window.removeEventListener('presence:changed', onPresenceChanged as EventListener);
   }, [currentUserId]);
 
+  useEffect(() => {
+    const refreshActiveRide = () => {
+      void api
+        .get<{ status?: 'Accepted' | 'InRide' } | null>('/driver/rides/active')
+        .then((response) => {
+          const status = response.data?.status;
+          setActiveRideStatus(status === 'Accepted' || status === 'InRide' ? status : null);
+        })
+        .catch(() => setActiveRideStatus(null));
+    };
+
+    refreshActiveRide();
+    window.addEventListener('dashboard:data-changed', refreshActiveRide as EventListener);
+    return () => window.removeEventListener('dashboard:data-changed', refreshActiveRide as EventListener);
+  }, []);
+
   const setManualStatus = async (status: Extract<UserStatus, 'Offline' | 'Online'>) => {
     setSaving(true);
     setError('');
     try {
       const response = await api.post<DriverPresenceSettingsDto>('/presence/status', { status });
-      setState(response.data);
+      setState(normalizePresence(response.data));
     } catch (err) {
       setError(getApiErrorMessage(err, 'Не вдалося змінити статус зміни.'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const toggleBreak = async () => {
+    if (!state) return;
+    const nextStatus: Extract<UserStatus, 'Online' | 'Break'> =
+      state.currentStatus === 'Break' ? 'Online' : 'Break';
+    setBreakSaving(true);
+    setError('');
+    try {
+      const response = await api.post<DriverPresenceSettingsDto>('/presence/status', { status: nextStatus });
+      setState(normalizePresence(response.data));
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Не вдалося змінити статус перерви.'));
+    } finally {
+      setBreakSaving(false);
     }
   };
 
@@ -109,7 +148,14 @@ export default function DriverShiftPage() {
   const nextManualStatus: Extract<UserStatus, 'Offline' | 'Online'> =
     currentStatus === 'Offline' ? 'Online' : 'Offline';
   const manualButtonText = currentStatus === 'Offline' ? 'Я «Онлайн»' : 'Я «Офлайн»';
-  const isManualDisabled = loading || isAutoEnabled || currentStatus === 'InRide';
+  const statusControlsDisabled = loading || isAutoEnabled || currentStatus === 'InRide';
+  const onBreak = currentStatus === 'Break';
+  const hasAssignedRide = activeRideStatus === 'Accepted' || activeRideStatus === 'InRide';
+  const breakDisabled =
+    loading ||
+    (onBreak
+      ? false
+      : hasAssignedRide || (currentStatus !== 'Online' && currentStatus !== 'InRide'));
 
   return (
     <section className={pageCardClass}>
@@ -139,40 +185,47 @@ export default function DriverShiftPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <button
           type="button"
-          disabled={isManualDisabled}
+          disabled={statusControlsDisabled}
           onClick={() => void setManualStatus(nextManualStatus)}
-          className="manager-accent-glow manager-primary-btn relative inline-flex items-center justify-center gap-2 rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+          className="manager-accent-glow manager-primary-btn relative inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
         >
           {loading ? (
-            <>
-              <span className="inline-flex items-center gap-2 opacity-0">
-                <Wifi size={16} />
-                {manualButtonText}
-              </span>
-              <Loader2 className="absolute h-4 w-4 animate-spin" />
-            </>
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : saving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : nextManualStatus === 'Online' ? (
+            <Wifi size={16} />
           ) : (
-            <>
-              {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : nextManualStatus === 'Online' ? (
-                <Wifi size={16} />
-              ) : (
-                <WifiOff size={16} />
-              )}
-              {manualButtonText}
-            </>
+            <WifiOff size={16} />
           )}
+          {manualButtonText}
         </button>
-        <p className="inline-flex items-center justify-center gap-1.5 text-center text-xs text-slate-400">
-          {isAutoEnabled
-            ? 'Автостатус увімкнено: статус присутності визначається автоматично.'
-            : 'Автостатус вимкнено: статус присутності визначається вручну.'}
-        </p>
+
+        <button
+          type="button"
+          disabled={breakDisabled}
+          onClick={() => void toggleBreak()}
+          className="manager-accent-glow manager-primary-btn relative inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+        >
+          {breakSaving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : onBreak ? (
+            <Play size={16} />
+          ) : (
+            <Pause size={16} />
+          )}
+          {onBreak ? 'До роботи' : 'Взяти перерву'}
+        </button>
       </div>
+
+      <p className="mt-3 w-full text-center text-xs text-slate-400">
+        {isAutoEnabled
+          ? 'Автостатус увімкнено: статус присутності визначається автоматично.'
+          : 'Автостатус вимкнено: статус присутності визначається вручну.'}
+      </p>
     </section>
   );
 }

@@ -1,4 +1,4 @@
-import { BarChart3, Car, LogOut, Power, Settings } from 'lucide-react';
+import { BarChart3, Car, ListOrdered, LogOut, Power, Settings } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import { useEffect } from 'react';
@@ -8,6 +8,7 @@ import { api } from '../api/axios';
 
 const links = [
   { to: '/driver/shift', label: 'Зміна', icon: Power },
+  { to: '/driver/orders', label: 'Замовлення', icon: ListOrdered },
   { to: '/driver/analytics', label: 'Аналітика', icon: BarChart3 },
   { to: '/driver/settings', label: 'Налаштування', icon: Settings }
 ];
@@ -80,7 +81,7 @@ export default function DriverLayout() {
             </button>
             <div>
               <p className="text-lg font-bold tracking-tight text-white">
-                Taxi <span className="text-[#EAB308]">839</span>
+                TAXI <span className="text-[#EAB308]">839</span>
               </p>
               <p className="text-xs text-slate-400">Панель водія</p>
             </div>
@@ -125,7 +126,7 @@ export default function DriverLayout() {
           </main>
 
           <footer className="shrink-0 border-t border-white/10 px-3 py-4 text-center text-xs leading-snug text-slate-500 sm:px-5">
-            © 2026 Taxi 839. Всі права захищені.
+            © 2026 TAXI 839. Всі права захищені.
           </footer>
         </div>
       </div>

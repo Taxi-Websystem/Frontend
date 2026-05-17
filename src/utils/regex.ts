@@ -16,6 +16,13 @@ export const ANY_WHITESPACE_REGEX = /\s/gu;
 export const LICENSE_PLATE_UA_REGEX = /^[\p{L}]{2}\d{4}[\p{L}]{2}$/u;
 export const RATING_1_TO_5_DECIMAL_REGEX = /^(?:[1-4](?:[.,]\d{1,2})?|5(?:[.,]0{1,2})?)$/;
 
+/** Дозволені символи та проміжний ввід для грошових полів (як рейтинг). */
+export const DECIMAL_ALLOWED_CHARS_REGEX = /[^0-9.,]/g;
+export const DECIMAL_EDITABLE_REGEX = /^\d*(?:[.,]\d{0,2})?$/;
+export const NON_NEGATIVE_DECIMAL_REGEX = /^\d+(?:[.,]\d{1,2})?$/;
+/** Комісія 0–100 %, до 2 знаків після коми. */
+export const FEE_PERCENT_DECIMAL_REGEX = /^(?:100(?:[.,]0{1,2})?|[1-9]?\d(?:[.,]\d{1,2})?)$/;
+
 export const JWT_BASE64URL_DASH_REGEX = /-/g;
 export const JWT_BASE64URL_UNDERSCORE_REGEX = /_/g;
 export const DIGITS_STRING_REGEX = /^\d+$/;

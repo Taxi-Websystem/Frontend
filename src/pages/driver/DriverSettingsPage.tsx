@@ -6,6 +6,8 @@ import type { UserStatus } from '../../utils/userStatus';
 
 interface DriverPresenceSettingsDto {
   isAutoStatusEnabled: boolean;
+  isAutoAcceptOrdersEnabled: boolean;
+  isRouteOptimizationEnabled: boolean;
   currentStatus: UserStatus;
   isManualControlAllowed: boolean;
   profileId: number;
@@ -37,18 +39,25 @@ export default function DriverSettingsPage() {
     void load();
   }, []);
 
-  const onAutoStatusChange = async (next: boolean) => {
-    if (!state) {
-      return;
-    }
+  const patchSettings = async (
+    patch: Partial<
+      Pick<
+        DriverPresenceSettingsDto,
+        'isAutoStatusEnabled' | 'isAutoAcceptOrdersEnabled' | 'isRouteOptimizationEnabled'
+      >
+    >
+  ) => {
+    if (!state) return;
 
     const previous = state;
     const requestId = ++updateRequestIdRef.current;
-    setState({ ...state, isAutoStatusEnabled: next });
+    setState({ ...state, ...patch });
     setError('');
     try {
       const response = await api.put<DriverPresenceSettingsDto>('/presence/settings', {
-        isAutoStatusEnabled: next
+        isAutoStatusEnabled: patch.isAutoStatusEnabled,
+        isAutoAcceptOrdersEnabled: patch.isAutoAcceptOrdersEnabled,
+        isRouteOptimizationEnabled: patch.isRouteOptimizationEnabled
       });
       if (requestId === updateRequestIdRef.current) {
         setState(response.data);
@@ -80,16 +89,33 @@ export default function DriverSettingsPage() {
           <Loader2 className="mx-auto h-5 w-5 animate-spin" />
         </div>
       ) : (
-        <FormSwitch
-          label="Автоматичне визначення присутності"
-          checked={state.isAutoStatusEnabled}
-          onChange={(next) => void onAutoStatusChange(next)}
-          description={
-            state.isAutoStatusEnabled
-              ? 'Автостатус увімкнено. Статус присутності на сторінці «Зміна» визначається автоматично.'
-              : 'Автостатус вимкнено. Статус присутності на сторінці «Зміна» визначається вручну.'
-          }
-        />
+        <div className="space-y-6">
+          <FormSwitch
+            layout="stacked"
+            label="Автоматичне визначення присутності"
+            checked={state.isAutoStatusEnabled}
+            onChange={(next) => void patchSettings({ isAutoStatusEnabled: next })}
+            description={
+              state.isAutoStatusEnabled
+                ? 'Автостатус увімкнено. Статус присутності на сторінці «Зміна» визначається автоматично.'
+                : 'Автостатус вимкнено. Статус присутності на сторінці «Зміна» визначається вручну.'
+            }
+          />
+          <FormSwitch
+            layout="stacked"
+            label="Автоматично підтверджувати замовлення"
+            checked={state.isAutoAcceptOrdersEnabled}
+            onChange={(next) => void patchSettings({ isAutoAcceptOrdersEnabled: next })}
+            description="Якщо увімкнено, замовлення на сторінці «Замовлення» приймаються без додаткового підтвердження."
+          />
+          <FormSwitch
+            layout="stacked"
+            label="Оптимізація маршруту"
+            checked={state.isRouteOptimizationEnabled}
+            onChange={(next) => void patchSettings({ isRouteOptimizationEnabled: next })}
+            description="Експериментальна опція для покращення відображення маршрутів на картах."
+          />
+        </div>
       )}
     </section>
   );

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, ShieldCheck, ArrowRight, Loader2, ChevronLeft, Car, UserRoundCheck, CheckCircle2 } from 'lucide-react';
+import { CarFront, Phone, ShieldCheck, ArrowRight, Loader2, ChevronLeft, Car, UserRoundCheck } from 'lucide-react';
 import AuthBackgroundLayers from '../components/AuthBackgroundLayers';
 import { api } from '../api/axios';
 import { DIGITS_ONLY_REGEX } from '../utils/regex';
@@ -118,7 +118,7 @@ export default function LoginPage() {
                 <Car className="h-7 w-7 text-[#0F172A]" />
               </div>
               <h1 className="text-left text-5xl font-bold tracking-tight text-white">
-                Taxi <span className="text-[#EAB308]">839</span>
+                TAXI <span className="text-[#EAB308]">839</span>
               </h1>
             </div>
             <p className="text-center text-sm text-slate-400">Таксі - це просто, зручно та швидко.</p>
@@ -252,7 +252,7 @@ export default function LoginPage() {
             <div className={statCardClass}>
               <div className="flex items-center gap-3">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#EAB308]/15 text-[#EAB308]">
-                  <CheckCircle2 className="h-7 w-7" />
+                  <CarFront className="h-7 w-7" strokeWidth={2} aria-hidden />
                 </div>
                 <div>
                   <p className="flex min-h-9 items-center text-2xl font-bold tabular-nums text-white">
@@ -270,7 +270,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <p className="mt-6 text-center text-xs leading-snug text-slate-500 sm:mt-8">© 2026 Taxi 839. Всі права захищені.</p>
+          <p className="mt-6 text-center text-xs leading-snug text-slate-500 sm:mt-8">© 2026 TAXI 839. Всі права захищені.</p>
         </div>
       </div>
 

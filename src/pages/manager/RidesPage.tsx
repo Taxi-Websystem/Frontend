@@ -13,6 +13,11 @@ import {
   RATING_EDITABLE_REGEX
 } from '../../utils/regex';
 import { managerTablePad } from './managerTableStyles';
+import type { UserStatus } from '../../utils/userStatus';
+import AddressAutocomplete from '../../components/AddressAutocomplete';
+import RideRouteMap, { type RideMapData } from '../../components/RideRouteMap';
+import { compactAddressLabel, fetchDrivingDistanceKm } from '../../utils/geo';
+import { toDatetimeLocalValue } from '../../utils/datetime';
 
 type RideStatus = 'Created' | 'Accepted' | 'InRide' | 'Completed' | 'Canceled';
 
@@ -25,6 +30,10 @@ interface RideItem {
   rating: number | null;
   fromAddress: string;
   toAddress: string;
+  fromLatitude?: number | null;
+  fromLongitude?: number | null;
+  toLatitude?: number | null;
+  toLongitude?: number | null;
   startTime: string | null;
   endTime: string | null;
   createdAt: string;
@@ -38,7 +47,7 @@ interface DriverOption {
   userId: number;
   name: string;
   phoneNumber: string;
-  userStatus?: 'Offline' | 'Online' | 'InRide' | number;
+  userStatus?: UserStatus | number;
 }
 
 interface RideFormState {
@@ -47,6 +56,10 @@ interface RideFormState {
   ratingInput: string;
   fromAddress: string;
   toAddress: string;
+  fromLatitude: number | null;
+  fromLongitude: number | null;
+  toLatitude: number | null;
+  toLongitude: number | null;
   startTime: string;
   endTime: string;
   distanceKm: string;
@@ -58,9 +71,13 @@ const defaultForm: RideFormState = {
   ratingInput: '',
   fromAddress: '',
   toAddress: '',
+  fromLatitude: null,
+  fromLongitude: null,
+  toLatitude: null,
+  toLongitude: null,
   startTime: '',
   endTime: '',
-  distanceKm: '0'
+  distanceKm: ''
 };
 
 const pageCardClass =
@@ -116,6 +133,10 @@ export default function RidesPage() {
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [form, setForm] = useState<RideFormState>(defaultForm);
   const [drivers, setDrivers] = useState<DriverOption[]>([]);
+  const [distanceLoading, setDistanceLoading] = useState(false);
+  const [mapRideId, setMapRideId] = useState<number | null>(null);
+  const [mapData, setMapData] = useState<RideMapData | null>(null);
+  const [mapLoading, setMapLoading] = useState(false);
 
   const isCreateMode = editing === null;
   const ratingRaw = form.ratingInput.trim();
@@ -124,8 +145,18 @@ export default function RidesPage() {
     RATING_1_TO_5_DECIMAL_REGEX.test(ratingRaw);
   const distanceNum = Number(form.distanceKm.replace(',', '.'));
   const isDistanceValid = !Number.isNaN(distanceNum) && distanceNum >= 0;
+  const hasCoords =
+    form.fromLatitude != null &&
+    form.fromLongitude != null &&
+    form.toLatitude != null &&
+    form.toLongitude != null;
   const isFormValid =
-    form.fromAddress.trim().length > 0 && form.toAddress.trim().length > 0 && isRatingValid && isDistanceValid;
+    form.fromAddress.trim().length > 0 &&
+    form.toAddress.trim().length > 0 &&
+    hasCoords &&
+    isRatingValid &&
+    isDistanceValid &&
+    distanceNum > 0;
   const isDriverLockedOnEdit =
     editing !== null &&
     (editing.status === 'InRide' || editing.status === 'Canceled' || editing.status === 'Completed');
@@ -195,6 +226,37 @@ export default function RidesPage() {
   }, []);
 
   useEffect(() => {
+    if (
+      form.fromLatitude == null ||
+      form.fromLongitude == null ||
+      form.toLatitude == null ||
+      form.toLongitude == null
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    setDistanceLoading(true);
+    void fetchDrivingDistanceKm(
+      form.fromLongitude,
+      form.fromLatitude,
+      form.toLongitude,
+      form.toLatitude
+    )
+      .then((km) => {
+        if (cancelled || km == null) return;
+        setForm((prev) => ({ ...prev, distanceKm: String(km) }));
+      })
+      .finally(() => {
+        if (!cancelled) setDistanceLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [form.fromLatitude, form.fromLongitude, form.toLatitude, form.toLongitude]);
+
+  useEffect(() => {
     const onDashboardDataChanged = (event: Event) => {
       const detail = (event as CustomEvent<{ entity?: string }>).detail;
       if (detail?.entity === 'presence') {
@@ -210,7 +272,7 @@ export default function RidesPage() {
 
   useEffect(() => {
     const onPresenceChanged = (event: Event) => {
-      const detail = (event as CustomEvent<{ userId: number; status: 'Offline' | 'Online' | 'InRide' }>).detail;
+      const detail = (event as CustomEvent<{ userId: number; status: import('../../utils/userStatus').UserStatus }>).detail;
       if (!detail) return;
 
       setDrivers((prev) =>
@@ -241,10 +303,14 @@ export default function RidesPage() {
       driverId: ride.driverId ? String(ride.driverId) : '',
       status: ride.status,
       ratingInput: ride.rating != null ? String(ride.rating) : '',
-      fromAddress: ride.fromAddress,
-      toAddress: ride.toAddress,
-      startTime: ride.startTime ? ride.startTime.slice(0, 16) : '',
-      endTime: ride.endTime ? ride.endTime.slice(0, 16) : '',
+      fromAddress: compactAddressLabel(ride.fromAddress),
+      toAddress: compactAddressLabel(ride.toAddress),
+      fromLatitude: ride.fromLatitude ?? null,
+      fromLongitude: ride.fromLongitude ?? null,
+      toLatitude: ride.toLatitude ?? null,
+      toLongitude: ride.toLongitude ?? null,
+      startTime: toDatetimeLocalValue(ride.startTime),
+      endTime: toDatetimeLocalValue(ride.endTime),
       distanceKm: String(ride.distanceKm ?? 0)
     });
     setIsModalOpen(true);
@@ -268,8 +334,12 @@ export default function RidesPage() {
       driverId: form.driverId ? Number(form.driverId) : null,
       status: form.status,
       rating: form.ratingInput ? Number(form.ratingInput.replace(',', '.')) : null,
-      fromAddress: form.fromAddress.trim(),
-      toAddress: form.toAddress.trim(),
+      fromAddress: compactAddressLabel(form.fromAddress),
+      toAddress: compactAddressLabel(form.toAddress),
+      fromLatitude: form.fromLatitude,
+      fromLongitude: form.fromLongitude,
+      toLatitude: form.toLatitude,
+      toLongitude: form.toLongitude,
       startTime: form.startTime ? new Date(form.startTime).toISOString() : null,
       endTime: form.endTime ? new Date(form.endTime).toISOString() : null,
       distanceKm: Number(form.distanceKm.replace(',', '.'))
@@ -287,6 +357,23 @@ export default function RidesPage() {
       setError(getApiErrorMessage(err, 'Не вдалося зберегти поїздку.'));
       setSaving(false);
     }
+  };
+
+  const openMapModal = (rideId: number) => {
+    setMapRideId(rideId);
+    setMapData(null);
+    setMapLoading(true);
+    void api
+      .get<RideMapData>(`/rides/${rideId}/map`)
+      .then((res) => setMapData(res.data))
+      .catch(() => setMapData(null))
+      .finally(() => setMapLoading(false));
+  };
+
+  const closeMapModal = () => {
+    setMapRideId(null);
+    setMapData(null);
+    setMapLoading(false);
   };
 
   const deleteRide = async (id: number) => {
@@ -410,13 +497,20 @@ export default function RidesPage() {
                       {driverLabel === '—' ? (
                         '—'
                       ) : (
-                        <Link to="/manager/development" className="text-[#EAB308] hover:underline">
+                        <Link
+                          to={ride.driverId ? `/manager/analytics/${ride.driverId}` : '#'}
+                          className="text-[#EAB308] hover:underline"
+                        >
                           {driverLabel}
                         </Link>
                       )}
                     </td>
-                    <td className={`max-w-xs truncate ${managerTablePad}`}>{ride.fromAddress}</td>
-                    <td className={`max-w-xs truncate ${managerTablePad}`}>{ride.toAddress}</td>
+                    <td className={`max-w-xs truncate ${managerTablePad}`}>
+                      {compactAddressLabel(ride.fromAddress)}
+                    </td>
+                    <td className={`max-w-xs truncate ${managerTablePad}`}>
+                      {compactAddressLabel(ride.toAddress)}
+                    </td>
                     <td className={`${managerTablePad} text-right tabular-nums`}>
                       {Number(ride.distanceKm).toFixed(2)}
                     </td>
@@ -432,9 +526,14 @@ export default function RidesPage() {
                     </td>
                     <td className={managerTablePad}>
                       <div className="flex items-center justify-end gap-2">
-                        <Link to="/manager/development" title="На карті" className="manager-icon-btn">
+                        <button
+                          type="button"
+                          title="На карті"
+                          onClick={() => openMapModal(ride.id)}
+                          className="manager-icon-btn"
+                        >
                           <Eye size={14} />
-                        </Link>
+                        </button>
                         <button
                           type="button"
                           title="Редагувати"
@@ -517,54 +616,77 @@ export default function RidesPage() {
                       onChange={(event) => setForm((prev) => ({ ...prev, driverId: event.target.value }))}
                       className="mt-2 field-select font-mono disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      <option value="">Оберіть водія</option>
-                      {selectableDrivers.map((driver) => (
-                        <option key={driver.id} value={driver.id}>
-                          №{driver.userId} — {driver.name} ({driver.phoneNumber})
-                        </option>
-                      ))}
-                    </select>
-                    {!isDriverLockedOnEdit && (
-                      <p className="mt-1 text-xs text-slate-400">В списку доступні лише водії зі статусом Онлайн.</p>
-                    )}
-                    {!isCreateMode && isDriverLockedOnEdit && (
-                      <p className="mt-1 text-xs text-slate-400">Водія можна змінити тільки перед початком поїздки.</p>
-                    )}
-                  </label>
+                    <option value="">Оберіть водія</option>
+                    {selectableDrivers.map((driver) => (
+                      <option key={driver.id} value={driver.id}>
+                        №{driver.userId} — {driver.name} ({driver.phoneNumber})
+                      </option>
+                    ))}
+                  </select>
+                  {!isDriverLockedOnEdit && (
+                    <p className="mt-1 text-xs text-slate-400">В списку доступні лише водії зі статусом «Онлайн».</p>
+                  )}
+                  {!isCreateMode && isDriverLockedOnEdit && (
+                    <p className="mt-1 text-xs text-slate-400">Водія можна змінити тільки перед початком поїздки.</p>
+                  )}
+                </label>
+
+                <AddressAutocomplete
+                    label="Звідки (вулиця)"
+                    value={form.fromAddress}
+                    latitude={form.fromLatitude}
+                    longitude={form.fromLongitude}
+                    placeholder="Шевченка, 123"
+                    onChange={(next) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        fromAddress: next?.displayName ?? '',
+                        fromLatitude: next?.latitude ?? null,
+                        fromLongitude: next?.longitude ?? null,
+                        distanceKm: next ? prev.distanceKm : ''
+                      }))
+                    }
+                  />
+
+                <AddressAutocomplete
+                    label="Куди (вулиця)"
+                    value={form.toAddress}
+                    latitude={form.toLatitude}
+                    longitude={form.toLongitude}
+                    placeholder="Сихівська, 10"
+                    onChange={(next) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        toAddress: next?.displayName ?? '',
+                        toLatitude: next?.latitude ?? null,
+                        toLongitude: next?.longitude ?? null,
+                        distanceKm: next ? prev.distanceKm : ''
+                      }))
+                    }
+                  />
 
                 <label className={fieldLabelClass}>
                   Відстань (км)
-                  <input
-                    required
-                    type="text"
-                    inputMode="decimal"
-                    value={form.distanceKm}
-                    onChange={(event) => setForm((prev) => ({ ...prev, distanceKm: event.target.value }))}
-                    className="mt-2 field-input tabular-nums"
-                    placeholder="0"
-                  />
-                </label>
-
-                <label className={fieldLabelClass}>
-                  Звідки
-                  <input
-                    required
-                    value={form.fromAddress}
-                    onChange={(event) => setForm((prev) => ({ ...prev, fromAddress: event.target.value }))}
-                    className="mt-2 field-input"
-                    placeholder="Шевченка, 123"
-                  />
-                </label>
-
-                <label className={fieldLabelClass}>
-                  Куди
-                  <input
-                    required
-                    value={form.toAddress}
-                    onChange={(event) => setForm((prev) => ({ ...prev, toAddress: event.target.value }))}
-                    className="mt-2 field-input"
-                    placeholder="Шевченка, 321"
-                  />
+                  <div className="relative mt-2">
+                    <div
+                      className={`field-input tabular-nums select-none ${
+                        !distanceLoading && !form.distanceKm ? 'text-slate-500' : 'text-white'
+                      }`}
+                      aria-readonly
+                    >
+                      {distanceLoading
+                        ? hasCoords
+                          ? 'Обчислення…'
+                          : 'Оберіть обидві адреси'
+                        : form.distanceKm ||
+                          (hasCoords ? 'Обчислення…' : 'Оберіть обидві адреси')}
+                    </div>
+                    {distanceLoading ? (
+                      <span className="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-center">
+                        <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                      </span>
+                    ) : null}
+                  </div>
                 </label>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -604,6 +726,32 @@ export default function RidesPage() {
                   ) : null}
                 </button>
               </form>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
+
+      {mapRideId !== null && (
+        <ModalPortal>
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-x-hidden overflow-y-auto bg-slate-950/80 p-4 sm:items-center sm:p-6">
+            <div className="mx-auto my-6 w-full max-w-3xl rounded-3xl border border-white/10 bg-[#0F172A] p-6 shadow-2xl ring-1 ring-white/5 sm:my-0">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white">Маршрут поїздки №{mapRideId}</h3>
+                <button
+                  type="button"
+                  onClick={closeMapModal}
+                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              {mapLoading || !mapData ? (
+                <div className="flex h-[320px] items-center justify-center text-slate-400">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : (
+                <RideRouteMap data={mapData} />
+              )}
             </div>
           </div>
         </ModalPortal>

@@ -82,7 +82,7 @@ export default function ManagerLayout() {
             </button>
             <div>
               <p className="text-lg font-bold tracking-tight text-white">
-                Taxi <span className="text-[#EAB308]">839</span>
+                TAXI <span className="text-[#EAB308]">839</span>
               </p>
               <p className="text-xs text-slate-400">Панель менеджера</p>
             </div>
@@ -127,7 +127,7 @@ export default function ManagerLayout() {
           </main>
 
           <footer className="shrink-0 border-t border-white/10 px-3 py-4 text-center text-xs leading-snug text-slate-500 sm:px-5">
-            © 2026 Taxi 839. Всі права захищені.
+            © 2026 TAXI 839. Всі права захищені.
           </footer>
         </div>
       </div>

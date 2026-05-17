@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { CarFront, Loader2, Pencil, Plus, Save, SquareParking, Star, Trash2, UserRoundCheck, X } from 'lucide-react';
 import { api, getApiErrorMessage } from '../../api/axios';
 import { getCurrentRole } from '../../utils/auth';
@@ -58,26 +59,32 @@ const fieldLabelClass = 'mb-1 block text-sm font-medium text-slate-300';
 const statusToCode: Record<UserStatus, number> = {
   Offline: 0,
   Online: 1,
-  InRide: 2
+  InRide: 2,
+  Break: 3
 };
 
 function userStatusToPulseKind(status: UserStatus): StatusPulseKind {
   if (status === 'Online') return 'online';
   if (status === 'InRide') return 'inRide';
+  if (status === 'Break') return 'created';
   return 'offline';
 }
 
 function normalizeStatus(input: UserStatus | number | undefined, index: number): UserStatus {
-  if (typeof input === 'string' && (input === 'Online' || input === 'InRide' || input === 'Offline')) {
+  if (
+    typeof input === 'string' &&
+    (input === 'Online' || input === 'InRide' || input === 'Offline' || input === 'Break')
+  ) {
     return input;
   }
   if (typeof input === 'number') {
     if (input === 1) return 'Online';
     if (input === 2) return 'InRide';
+    if (input === 3) return 'Break';
     return 'Offline';
   }
 
-  return (['Online', 'InRide', 'Offline'] as UserStatus[])[index % 3];
+  return (['Online', 'InRide', 'Offline', 'Break'] as UserStatus[])[index % 4];
 }
 
 function formatRating(value: number | null | undefined): string {
@@ -368,7 +375,14 @@ export default function DriversPage() {
                         {getUserStatusLabel(status)}
                       </span>
                     </td>
-                    <td className={managerTablePad}>{item.name}</td>
+                    <td className={managerTablePad}>
+                      <Link
+                        to={`/manager/analytics/${item.id}`}
+                        className="text-[#EAB308] hover:underline"
+                      >
+                        {item.name}
+                      </Link>
+                    </td>
                     <td className={`${managerTablePad} font-mono`}>{item.phoneNumber}</td>
                     <td className={`${managerTablePad} text-right tabular-nums text-white`}>{item.tripCount ?? 0}</td>
                     <td className={`${managerTablePad} text-right font-medium tabular-nums text-[#EAB308]`}>

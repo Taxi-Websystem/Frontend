@@ -11,8 +11,23 @@ import {
   YAxis
 } from 'recharts';
 import { format, subDays, subMonths } from 'date-fns';
-import { BarChart3, CarFront, CircleDollarSign, Clock, LineChart, ListOrdered, Loader2, PieChart, Route, Star } from 'lucide-react';
+import {
+  BarChart3,
+  CarFront,
+  CircleDollarSign,
+  Clock,
+  LineChart,
+  ListOrdered,
+  Loader2,
+  Navigation,
+  PieChart,
+  Route,
+  Star
+} from 'lucide-react';
+import { useParams } from 'react-router-dom';
 import { api, getApiErrorMessage } from '../../api/axios';
+import { formatLocalDateTime } from '../../utils/datetime';
+import RideRouteMap, { type RideMapData } from '../../components/RideRouteMap';
 import { AnalyticsTooltipCursorEcho } from './AnalyticsTooltipCursorEcho';
 
 const pageCardClass =
@@ -55,6 +70,9 @@ const areaChartTooltipCursor = {
 const chartViewportClass =
   'h-[280px] w-full shrink-0 overflow-visible rounded-2xl border border-white/10 bg-white/5 shadow-lg backdrop-blur-sm';
 
+const mapViewportClass =
+  'h-[320px] w-full shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg backdrop-blur-sm';
+
 /** Світіння лінії/заливки area (hover) — ті самі drop-shadow, що й у стовпчиків. */
 const areaLineGlowStyle = {
   filter:
@@ -92,11 +110,24 @@ interface ChartPoint {
   distanceKmTotal: number;
 }
 
+interface RideMapSummary {
+  rideId: number;
+  fromAddress: string;
+  toAddress: string;
+  endTime: string;
+}
+
+function formatRideMapOptionLabel(ride: RideMapSummary): string {
+  const when = formatLocalDateTime(ride.endTime);
+  const suffix = when ? ` (${when})` : '';
+  return `№${ride.rideId} — ${ride.fromAddress} → ${ride.toAddress}${suffix}`;
+}
+
 interface AnalyticsResponse {
   summary: AnalyticsSummary;
   chartData: ChartPoint[];
-  /** З бекенду: "hour" для коротких інтервалів (до ~52 год), "day" для довших періодів. */
   chartBucket?: 'hour' | 'day';
+  ridesForMap?: RideMapSummary[];
 }
 
 const PERIODS: { id: PeriodId; label: string }[] = [
@@ -110,17 +141,14 @@ const PERIODS: { id: PeriodId; label: string }[] = [
   { id: 'year', label: 'Рік' }
 ];
 
-/** Початок поточної календарної доби в локальному часовому поясі браузера. */
 function localStartOfCalendarDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
 }
 
-/** Сьогодні: від локальної півночі до поточного моменту. */
 function localTodayRange(now: Date): { start: Date; end: Date } {
   return { start: localStartOfCalendarDay(now), end: now };
 }
 
-/** Вчора: повна попередня локальна календарна доба (00:00–23:59:59.999). */
 function localYesterdayRange(now: Date): { start: Date; end: Date } {
   const startToday = localStartOfCalendarDay(now);
   const endYesterday = new Date(startToday.getTime() - 1);
@@ -245,21 +273,83 @@ function ChartEmptyState() {
       <div className="mb-3 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-500">
         <PieChart className="h-7 w-7" strokeWidth={2} />
       </div>
-      <p className="text-sm font-medium text-slate-400/90">Немає даних за цей період.</p>
+      <p className="text-sm font-medium text-slate-400/90">Немає даних за обраний період.</p>
       <p className="mt-2 max-w-xs text-xs text-slate-500/80">Спробуйте інший діапазон дат.</p>
     </div>
   );
 }
 
-function ChartPanelLoading() {
+function ChartPanelLoading({ viewportClass = chartViewportClass }: { viewportClass?: string }) {
   return (
-    <div className={`${chartViewportClass} flex items-center justify-center text-slate-400`}>
+    <div className={`${viewportClass} flex items-center justify-center text-slate-400`}>
       <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
     </div>
   );
 }
 
+function MapPanelFrame({ children, withTabs = false }: { children: ReactNode; withTabs?: boolean }) {
+  return (
+    <div className="flex flex-col">
+      {withTabs ? (
+        <div className="mb-3 flex flex-wrap gap-2" aria-hidden>
+          <span className="rounded-full border border-transparent px-3 py-2 text-xs font-semibold opacity-0 sm:text-sm">
+            Оригінальний
+          </span>
+          <span className="rounded-full border border-transparent px-3 py-2 text-xs font-semibold opacity-0 sm:text-sm">
+            Реальний
+          </span>
+        </div>
+      ) : null}
+      {children}
+    </div>
+  );
+}
+
+function MapChartEmptyState({ withTabs = false }: { withTabs?: boolean }) {
+  return (
+    <MapPanelFrame withTabs={withTabs}>
+      <div
+        className={`${mapViewportClass} flex flex-col items-center justify-center px-6 text-center`}
+      >
+        <div className="mb-3 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-500">
+          <Route className="h-7 w-7" strokeWidth={2} aria-hidden />
+        </div>
+        <p className="text-sm font-medium text-slate-400/90">Немає даних за обраний період.</p>
+        <p className="mt-2 max-w-xs text-xs text-slate-500/80">Спробуйте інший діапазон дат.</p>
+      </div>
+    </MapPanelFrame>
+  );
+}
+
+function MapChartPanelLoading({ withTabs = false }: { withTabs?: boolean }) {
+  return (
+    <MapPanelFrame withTabs={withTabs}>
+      <div className={`${mapViewportClass} flex items-center justify-center text-slate-400`}>
+        <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+      </div>
+    </MapPanelFrame>
+  );
+}
+
+function MapPanelError({ message, withTabs = false }: { message: string; withTabs?: boolean }) {
+  return (
+    <MapPanelFrame withTabs={withTabs}>
+      <div
+        className={`${mapViewportClass} flex flex-col items-center justify-center px-6 text-center`}
+      >
+        <div className="mb-3 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-500">
+          <Route className="h-7 w-7" strokeWidth={2} aria-hidden />
+        </div>
+        <p className="text-sm font-medium text-slate-400/90">{message}</p>
+      </div>
+    </MapPanelFrame>
+  );
+}
+
 export default function AnalyticsPage() {
+  const { driverProfileId: routeDriverId } = useParams<{ driverProfileId?: string }>();
+  const isManagerView = routeDriverId != null && routeDriverId !== '';
+
   const [profileId, setProfileId] = useState<number | null>(null);
   const [period, setPeriod] = useState<PeriodId>('all');
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -267,10 +357,24 @@ export default function AnalyticsPage() {
   const [error, setError] = useState('');
   const [data, setData] = useState<AnalyticsResponse | null>(null);
   const [profitChartHovered, setProfitChartHovered] = useState(false);
+  const [selectedRideId, setSelectedRideId] = useState<number | null>(null);
+  const [mapData, setMapData] = useState<RideMapData | null>(null);
+  const [mapLoading, setMapLoading] = useState(false);
+  const [mapLoadError, setMapLoadError] = useState('');
+  const [viewedDriverCaption, setViewedDriverCaption] = useState<string | null>(null);
 
   const range = useMemo(() => getPeriodRange(period), [period]);
 
   useEffect(() => {
+    if (isManagerView) {
+      const parsed = Number(routeDriverId);
+      if (!Number.isNaN(parsed)) {
+        setProfileId(parsed);
+      }
+      setLoadingProfile(false);
+      return;
+    }
+
     const ac = new AbortController();
     setLoadingProfile(true);
     setError('');
@@ -291,7 +395,31 @@ export default function AnalyticsPage() {
       }
     })();
     return () => ac.abort();
-  }, []);
+  }, [isManagerView, routeDriverId]);
+
+  useEffect(() => {
+    if (!isManagerView || profileId == null) {
+      setViewedDriverCaption(null);
+      return undefined;
+    }
+
+    const ac = new AbortController();
+    void (async () => {
+      try {
+        const res = await api.get<{ id: number; name: string; phoneNumber: string }>(
+          `/drivers/${profileId}`,
+          { signal: ac.signal }
+        );
+        setViewedDriverCaption(`№${res.data.id} — ${res.data.name} (${res.data.phoneNumber})`);
+      } catch {
+        if (!ac.signal.aborted) {
+          setViewedDriverCaption(`№${profileId}`);
+        }
+      }
+    })();
+
+    return () => ac.abort();
+  }, [isManagerView, profileId]);
 
   useEffect(() => {
     if (profileId == null) return undefined;
@@ -322,6 +450,55 @@ export default function AnalyticsPage() {
     return () => ac.abort();
   }, [profileId, range]);
 
+  const ridesForMap = data?.ridesForMap ?? [];
+
+  useEffect(() => {
+    if (ridesForMap.length === 0) {
+      setSelectedRideId(null);
+      setMapData(null);
+      return;
+    }
+    if (selectedRideId == null || !ridesForMap.some((r) => r.rideId === selectedRideId)) {
+      setSelectedRideId(ridesForMap[0].rideId);
+    }
+  }, [ridesForMap, selectedRideId]);
+
+  useEffect(() => {
+    if (profileId == null || selectedRideId == null) {
+      setMapData(null);
+      setMapLoadError('');
+      setMapLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setMapLoading(true);
+    setMapLoadError('');
+    setMapData(null);
+
+    void api
+      .get<RideMapData>(`/analytics/driver/${profileId}/rides/${selectedRideId}/map`)
+      .then((res) => {
+        if (!cancelled) {
+          setMapData(res.data);
+          setMapLoadError('');
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setMapData(null);
+          setMapLoadError(getApiErrorMessage(err, 'Не вдалося завантажити маршрут.'));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setMapLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profileId, selectedRideId]);
+
   const summary = data?.summary;
   const chartBucket: 'hour' | 'day' = data?.chartBucket === 'hour' ? 'hour' : 'day';
   const chartData = useMemo(() => {
@@ -351,6 +528,8 @@ export default function AnalyticsPage() {
   const ridesTitle = 'Поїздки ' + (chartBucket === 'hour' ? ' за годинами' : ' за днями');
   const transitTitle = 'Час у дорозі ' + (chartBucket === 'hour' ? ' за годинами' : ' за днями');
   const kmTitle = 'Проїхано км ' + (chartBucket === 'hour' ? ' за годинами' : ' за днями');
+  const routesMapTitle =
+    'Маршрути поїздок' + (chartBucket === 'hour' ? ' за годинами' : ' за днями');
 
   const tooltipWrapperStyle = {
     zIndex: 2000,
@@ -370,7 +549,11 @@ export default function AnalyticsPage() {
             </div>
             <div>
               <h2 className="text-xl font-semibold text-white">Аналітика</h2>
-              <p className="mt-1 text-sm text-slate-400">Перегляд вашої роботи за вибраний період.</p>
+              <p className="mt-1 text-sm text-slate-400">
+                {isManagerView
+                  ? `Перегляд роботи водія ${viewedDriverCaption ?? `№${routeDriverId}`} за вибраний період.`
+                  : 'Перегляд вашої роботи за вибраний період.'}
+              </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -382,7 +565,7 @@ export default function AnalyticsPage() {
                 onClick={() => setPeriod(p.id)}
                 className={`manager-accent-glow manager-primary-btn rounded-full px-3 py-2 text-xs font-semibold transition-[color,filter,box-shadow,opacity] duration-300 sm:text-sm ${
                   period === p.id
-                    ? 'border-[#EAB308]/78 bg-[#EAB308]/15 text-[#EAB308] hover:text-white focus-visible:text-white'
+                    ? 'border-[#EAB308]/78 bg-[#EAB308]/15 text-[#EAB308] hover:text-slate-200 focus-visible:text-slate-200'
                     : 'border-white/10 bg-white/5 text-slate-200 hover:text-[#EAB308] focus-visible:text-[#EAB308]'
                 } disabled:cursor-not-allowed disabled:opacity-50`}
               >
@@ -406,7 +589,7 @@ export default function AnalyticsPage() {
             ) : (
               '—'
             ),
-            'Прибуток'
+            'Прибуток (грн)'
           )}
           {analyticsStatMiniCard(
             <CarFront className="h-7 w-7" strokeWidth={2} />,
@@ -568,7 +751,7 @@ export default function AnalyticsPage() {
 
         <section className={pageCardClass}>
           <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-white">
-            <Route className="h-7 w-7 shrink-0 text-[#EAB308]" strokeWidth={2} aria-hidden />
+            <Navigation className="h-7 w-7 shrink-0 text-[#EAB308]" strokeWidth={2} aria-hidden />
             {kmTitle}
           </h3>
           {chartsLoader ? (
@@ -679,6 +862,44 @@ export default function AnalyticsPage() {
           )}
         </section>
       </div>
+
+      <section className={pageCardClass}>
+        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-white">
+          <Route className="h-7 w-7 shrink-0 text-[#EAB308]" strokeWidth={2} aria-hidden />
+          {routesMapTitle}
+        </h3>
+        {chartsLoader ? (
+          <MapChartPanelLoading />
+        ) : ridesForMap.length === 0 ? (
+          <MapChartEmptyState />
+        ) : (
+          <>
+            <label className="mb-4 block text-sm font-medium text-slate-300">
+              Оберіть поїздку
+              <select
+                value={selectedRideId ?? ''}
+                onChange={(event) => setSelectedRideId(Number(event.target.value))}
+                className="field-select mt-2 w-full"
+              >
+                {ridesForMap.map((ride) => (
+                  <option key={ride.rideId} value={ride.rideId}>
+                    {formatRideMapOptionLabel(ride)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {mapLoading ? (
+              <MapChartPanelLoading withTabs />
+            ) : mapLoadError ? (
+              <MapPanelError message={mapLoadError} withTabs />
+            ) : mapData ? (
+              <RideRouteMap data={mapData} />
+            ) : (
+              <MapChartEmptyState withTabs />
+            )}
+          </>
+        )}
+      </section>
     </div>
   );
 }

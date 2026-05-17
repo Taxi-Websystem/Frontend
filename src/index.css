@@ -75,6 +75,12 @@
     -webkit-text-fill-color: #f8fafc;
   }
 
+  .field-input:disabled::placeholder {
+    color: rgb(100 116 139);
+    -webkit-text-fill-color: rgb(100 116 139);
+    opacity: 1;
+  }
+
   .field-input:focus,
   .field-input:focus-visible {
     outline: none;
@@ -378,6 +384,39 @@
     box-shadow:
       0 0 0 1px rgba(248, 113, 113, 0.78),
       0 12px 40px rgba(239, 68, 68, 0.32);
+  }
+
+  /** Як manager-icon-btn; зелена підсвітка «Онлайн» лише на hover/focus. */
+  .manager-action-btn--online {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: rgb(203 213 225);
+    box-shadow: none;
+    transition:
+      color 0.2s ease,
+      border-color 0.2s ease,
+      background-color 0.2s ease,
+      box-shadow 0.3s ease,
+      opacity 0.2s ease;
+  }
+
+  .manager-action-btn--online:hover:not(:disabled),
+  .manager-action-btn--online:focus-visible:not(:disabled) {
+    color: rgba(16, 185, 129, 0.95);
+    border-color: rgba(16, 185, 129, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(16, 185, 129, 0.78),
+      0 12px 40px rgba(16, 185, 129, 0.32);
+  }
+
+  .manager-action-btn--online:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
   }
 
   .manager-status-chip {

@@ -5,6 +5,11 @@ import { api, getApiErrorMessage } from '../../api/axios';
 import { parseApiRole } from '../../utils/roles';
 import { getCurrentRole, getCurrentUserId } from '../../utils/auth';
 import ModalPortal from '../../components/ModalPortal';
+import {
+  FEE_PERCENT_DECIMAL_REGEX,
+  NON_NEGATIVE_DECIMAL_REGEX,
+  sanitizeDecimalInput
+} from '../../utils/financialInput';
 
 interface FinancialSettingsResponse {
   baseFare: number;
@@ -31,7 +36,6 @@ export default function SettingsPage() {
   const [financialLoading, setFinancialLoading] = useState(true);
   const [financialSaving, setFinancialSaving] = useState(false);
   const [financialError, setFinancialError] = useState('');
-  const [financialSuccess, setFinancialSuccess] = useState('');
   const [tariffForm, setTariffForm] = useState({
     baseFare: '',
     costPerKm: '',
@@ -44,8 +48,6 @@ export default function SettingsPage() {
   const [managers, setManagers] = useState<ManagerOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-
   const loadManagers = async () => {
     if (!isSuperAdmin) return;
 
@@ -101,24 +103,33 @@ export default function SettingsPage() {
     setLoading(false);
   };
 
+  const baseFareRaw = tariffForm.baseFare.trim();
+  const costPerKmRaw = tariffForm.costPerKm.trim();
+  const platformFixedFeeRaw = tariffForm.platformFixedFee.trim();
+  const feePercentRaw = tariffForm.feePercent.trim();
+
+  const isFinancialFormValid =
+    NON_NEGATIVE_DECIMAL_REGEX.test(baseFareRaw.replace(',', '.')) &&
+    NON_NEGATIVE_DECIMAL_REGEX.test(costPerKmRaw.replace(',', '.')) &&
+    NON_NEGATIVE_DECIMAL_REGEX.test(platformFixedFeeRaw.replace(',', '.')) &&
+    FEE_PERCENT_DECIMAL_REGEX.test(feePercentRaw.replace(',', '.'));
+
   const saveTariffs = async (event: FormEvent) => {
     event.preventDefault();
     if (!isSuperAdmin) return;
 
-    setFinancialSaving(true);
-    setFinancialError('');
-    setFinancialSuccess('');
-
-    const baseFare = Number(tariffForm.baseFare.replace(',', '.'));
-    const costPerKm = Number(tariffForm.costPerKm.replace(',', '.'));
-    const platformFixedFee = Number(tariffForm.platformFixedFee.replace(',', '.'));
-    const feePercent = Number(tariffForm.feePercent.replace(',', '.'));
-
-    if ([baseFare, costPerKm, platformFixedFee, feePercent].some((n) => Number.isNaN(n))) {
+    if (!isFinancialFormValid) {
       setFinancialError('Перевірте коректність числових полів.');
-      setFinancialSaving(false);
       return;
     }
+
+    setFinancialSaving(true);
+    setFinancialError('');
+
+    const baseFare = Number(baseFareRaw.replace(',', '.'));
+    const costPerKm = Number(costPerKmRaw.replace(',', '.'));
+    const platformFixedFee = Number(platformFixedFeeRaw.replace(',', '.'));
+    const feePercent = Number(feePercentRaw.replace(',', '.'));
 
     try {
       await api.put('/settings', {
@@ -127,7 +138,6 @@ export default function SettingsPage() {
         platformFixedFee,
         platformFeePercentage: feePercent / 100
       });
-      setFinancialSuccess('Тарифи збережено.');
     } catch (err) {
       setFinancialError(getApiErrorMessage(err, 'Не вдалося зберегти тарифи.'));
     } finally {
@@ -139,7 +149,6 @@ export default function SettingsPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    setSuccess('');
 
     try {
       const response = await api.post<{ token: string; role: string }>('/auth/transfer-superadmin', {
@@ -148,7 +157,6 @@ export default function SettingsPage() {
 
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('role', response.data.role);
-      setSuccess('Права SuperAdmin передано. Вашу сесію оновлено.');
       closeTransferModal();
       navigate('/manager/whitelist', { replace: true });
     } catch {
@@ -179,25 +187,15 @@ export default function SettingsPage() {
       {error && (
         <div className="field-error-box mt-4">{error}</div>
       )}
-      {success && (
-        <div className="mt-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
-          {success}
-        </div>
-      )}
-
       {(isManager || isSuperAdmin) && (
-        <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm sm:p-5">
-          <h3 className="text-sm font-semibold text-white">Фінансові налаштування</h3>
-          <p className="mt-1 text-xs text-slate-400">
-            Подача, вартість за км, фіксований збір платформи та відсоток комісії (для розрахунку поїздок).
-          </p>
+        <>
+          <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm sm:p-5">
+            <h3 className="text-sm font-semibold text-white">Фінансові налаштування</h3>
+            <p className="mt-1 text-xs text-slate-400">
+              Налаштування для розрахунку вартості поїздок.
+            </p>
 
           {financialError ? <div className="field-error-box mt-4">{financialError}</div> : null}
-          {financialSuccess ? (
-            <div className="mt-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
-              {financialSuccess}
-            </div>
-          ) : null}
 
           {financialLoading ? (
             <div className="mt-4 text-center text-slate-400">
@@ -213,7 +211,12 @@ export default function SettingsPage() {
                     inputMode="decimal"
                     disabled={!isSuperAdmin}
                     value={tariffForm.baseFare}
-                    onChange={(event) => setTariffForm((p) => ({ ...p, baseFare: event.target.value }))}
+                    onChange={(event) =>
+                      setTariffForm((p) => ({
+                        ...p,
+                        baseFare: sanitizeDecimalInput(event.target.value, p.baseFare)
+                      }))
+                    }
                     className={financialInputClass}
                   />
                 </label>
@@ -224,7 +227,12 @@ export default function SettingsPage() {
                     inputMode="decimal"
                     disabled={!isSuperAdmin}
                     value={tariffForm.costPerKm}
-                    onChange={(event) => setTariffForm((p) => ({ ...p, costPerKm: event.target.value }))}
+                    onChange={(event) =>
+                      setTariffForm((p) => ({
+                        ...p,
+                        costPerKm: sanitizeDecimalInput(event.target.value, p.costPerKm)
+                      }))
+                    }
                     className={financialInputClass}
                   />
                 </label>
@@ -235,7 +243,12 @@ export default function SettingsPage() {
                     inputMode="decimal"
                     disabled={!isSuperAdmin}
                     value={tariffForm.platformFixedFee}
-                    onChange={(event) => setTariffForm((p) => ({ ...p, platformFixedFee: event.target.value }))}
+                    onChange={(event) =>
+                      setTariffForm((p) => ({
+                        ...p,
+                        platformFixedFee: sanitizeDecimalInput(event.target.value, p.platformFixedFee)
+                      }))
+                    }
                     className={financialInputClass}
                   />
                 </label>
@@ -246,20 +259,26 @@ export default function SettingsPage() {
                     inputMode="decimal"
                     disabled={!isSuperAdmin}
                     value={tariffForm.feePercent}
-                    onChange={(event) => setTariffForm((p) => ({ ...p, feePercent: event.target.value }))}
+                    onChange={(event) =>
+                      setTariffForm((p) => ({
+                        ...p,
+                        feePercent: sanitizeDecimalInput(event.target.value, p.feePercent, 100)
+                      }))
+                    }
                     className={financialInputClass}
                   />
                 </label>
               </div>
+
               {isSuperAdmin ? (
                 <button
                   type="submit"
-                  disabled={financialSaving}
+                  disabled={financialSaving || !isFinancialFormValid}
                   className="manager-accent-glow manager-primary-btn relative mt-2 inline-flex w-full max-w-xs items-center justify-center rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none sm:w-auto"
                 >
                   <span className={`inline-flex items-center gap-2 ${financialSaving ? 'invisible' : ''}`}>
                     <Save size={16} />
-                    Зберегти тарифи
+                    Зберегти
                   </span>
                   {financialSaving ? (
                     <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -270,7 +289,8 @@ export default function SettingsPage() {
               ) : null}
             </form>
           )}
-        </div>
+          </div>
+        </>
       )}
 
       {isSuperAdmin && (
@@ -364,3 +384,4 @@ export default function SettingsPage() {
     </section>
   );
 }
+

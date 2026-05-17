@@ -163,7 +163,7 @@ export default function CompleteRegistrationPage() {
                 <Car className="h-7 w-7 text-[#0F172A]" />
               </button>
               <h1 className="text-left text-5xl font-bold tracking-tight text-white">
-                Taxi <span className="text-[#EAB308]">839</span>
+                TAXI <span className="text-[#EAB308]">839</span>
               </h1>
             </div>
             <p className="text-center text-sm text-slate-400">Заповніть профіль, щоб завершити вхід у систему.</p>
@@ -322,7 +322,7 @@ export default function CompleteRegistrationPage() {
             </div>
           </div>
 
-          <p className="mt-6 text-center text-xs leading-snug text-slate-500 sm:mt-8">© 2026 Taxi 839. Всі права захищені.</p>
+          <p className="mt-6 text-center text-xs leading-snug text-slate-500 sm:mt-8">© 2026 TAXI 839. Всі права захищені.</p>
         </div>
       </div>
 

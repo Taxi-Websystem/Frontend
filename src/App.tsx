@@ -11,6 +11,7 @@ import SettingsPage from './pages/manager/SettingsPage';
 import RidesPage from './pages/manager/RidesPage';
 import DevelopmentPage from './pages/manager/DevelopmentPage';
 import DriverShiftPage from './pages/driver/DriverShiftPage';
+import DriverOrdersPage from './pages/driver/DriverOrdersPage';
 import AnalyticsPage from './pages/driver/AnalyticsPage';
 import DriverSettingsPage from './pages/driver/DriverSettingsPage';
 
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="managers" element={<ManagersPage />} />
           <Route path="drivers" element={<DriversPage />} />
           <Route path="rides" element={<RidesPage />} />
+          <Route path="analytics/:driverProfileId" element={<AnalyticsPage />} />
           <Route path="development" element={<DevelopmentPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
@@ -38,6 +40,7 @@ export default function App() {
           <Route index element={<Navigate to="/driver/shift" replace />} />
           <Route path="dashboard" element={<Navigate to="/driver/shift" replace />} />
           <Route path="shift" element={<DriverShiftPage />} />
+          <Route path="orders" element={<DriverOrdersPage />} />
           <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="settings" element={<DriverSettingsPage />} />
         </Route>
