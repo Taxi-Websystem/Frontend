@@ -27,7 +27,7 @@ export default function LoginPage() {
   const fieldLabelClass = 'mb-2 block text-sm font-medium text-slate-300';
   const errorBoxClass = 'field-error-box';
   const primaryButtonClass =
-    'login-accent-glow relative mt-1 flex h-[58px] w-full items-center justify-center gap-2 rounded-full bg-[#EAB308] px-4 text-base font-semibold text-[#0F172A] transition-[filter,opacity,box-shadow] duration-300 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none';
+    'login-accent-glow relative flex h-[58px] w-full items-center justify-center gap-2 rounded-full bg-[#EAB308] px-4 text-base font-semibold text-[#0F172A] transition-[filter,opacity,box-shadow] duration-300 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none';
   const statCardClass =
     'rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl backdrop-blur-xl sm:p-5';
 
@@ -112,7 +112,7 @@ export default function LoginPage() {
 
       <div className="relative z-[1] flex min-h-[100dvh] w-full flex-col items-center justify-center px-6 py-8 sm:px-8 lg:min-h-screen lg:w-1/2 lg:py-12">
         <div className="w-full max-w-lg">
-          <div className="mb-6 flex flex-col items-center gap-3 lg:mb-5">
+          <div className="mb-6 flex flex-col items-center gap-3">
             <div className="flex items-center justify-center gap-4">
               <div className="login-accent-glow flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#EAB308] hover:brightness-105">
                 <Car className="h-7 w-7 text-[#0F172A]" />
@@ -152,9 +152,8 @@ export default function LoginPage() {
                       className="min-w-0 flex-1 bg-transparent px-4 py-4 font-mono text-lg text-white outline-none placeholder:text-slate-500"
                     />
                   </div>
+                  {error ? <div className={`${errorBoxClass} mt-1`}>{error}</div> : null}
                 </div>
-
-                {error && <div className={errorBoxClass}>{error}</div>}
 
                 <button type="submit" disabled={loading || !isPhoneValid} className={primaryButtonClass}>
                   <span className={`inline-flex items-center gap-2 ${loading ? 'invisible' : ''}`}>
@@ -194,9 +193,8 @@ export default function LoginPage() {
                       className="w-full bg-transparent py-4 pl-11 pr-11 text-center font-mono text-lg tabular-nums tracking-[0.2em] text-white outline-none placeholder:text-slate-500"
                     />
                   </div>
+                  {error ? <div className={`${errorBoxClass} mt-1`}>{error}</div> : null}
                 </div>
-
-                {error && <div className={errorBoxClass}>{error}</div>}
 
                 <button type="submit" disabled={loading || code.length !== 6} className={primaryButtonClass}>
                   <span className={`inline-flex items-center gap-2 ${loading ? 'invisible' : ''}`}>
@@ -270,7 +268,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <p className="mt-6 text-center text-xs leading-snug text-slate-500 sm:mt-8">© 2026 TAXI 839. Всі права захищені.</p>
+          <p className="mt-6 text-center text-xs leading-snug text-slate-500">© 2026 TAXI 839. Всі права захищені.</p>
         </div>
       </div>
 

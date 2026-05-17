@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Loader2, Pencil, Plus, Save, Trash2, UsersRound, X } from 'lucide-react';
 import { api, getApiErrorMessage } from '../../api/axios';
+import { getSubmitFieldErrors, PHONE_DUPLICATE_MESSAGE } from '../../utils/formErrors';
 import { getCurrentRole, getCurrentUserId } from '../../utils/auth';
 import type { AppRole } from '../../utils/auth';
 import { getRoleLabel, parseApiRole } from '../../utils/roles';
@@ -47,6 +48,8 @@ export default function ManagersPage() {
   const [items, setItems] = useState<ManagerProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [formError, setFormError] = useState('');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<ManagerProfile | null>(null);
@@ -116,9 +119,15 @@ export default function ManagersPage() {
     return () => window.removeEventListener('presence:changed', onPresenceChanged as EventListener);
   }, []);
 
+  const clearModalErrors = () => {
+    setPhoneError('');
+    setFormError('');
+  };
+
   const openCreate = () => {
     setEditing(null);
     setForm(defaultForm);
+    clearModalErrors();
     setIsModalOpen(true);
   };
 
@@ -129,6 +138,7 @@ export default function ManagersPage() {
       name: sanitizeNameUa(item.name),
       editRole: 'Manager'
     });
+    clearModalErrors();
     setIsModalOpen(true);
   };
 
@@ -136,15 +146,35 @@ export default function ManagersPage() {
     setIsModalOpen(false);
     setEditing(null);
     setForm(defaultForm);
+    clearModalErrors();
     setSaving(false);
   };
 
   const saveManager = async (e: FormEvent) => {
     e.preventDefault();
-    if (!isFormValid) return;
+    if (!isFormValid) {
+      if (phoneRequiredForSubmit && form.phoneDigits.length !== 9) {
+        setPhoneError('Номер телефону має містити 9 цифр після +380.');
+      }
+      return;
+    }
 
     setSaving(true);
-    setError('');
+    clearModalErrors();
+
+    const phoneNumber = `+380${form.phoneDigits}`;
+    const duplicateManager = items.find((item) => item.phoneNumber === phoneNumber);
+    if (!editing && duplicateManager) {
+      setPhoneError(PHONE_DUPLICATE_MESSAGE);
+      setSaving(false);
+      return;
+    }
+
+    if (editing && editing.phoneNumber !== phoneNumber && duplicateManager) {
+      setPhoneError(PHONE_DUPLICATE_MESSAGE);
+      setSaving(false);
+      return;
+    }
 
     try {
       if (editing) {
@@ -156,7 +186,7 @@ export default function ManagersPage() {
           name: form.name.trim()
         };
         if (phoneRequiredForSubmit) {
-          payload.phoneNumber = `+380${form.phoneDigits}`;
+          payload.phoneNumber = phoneNumber;
         }
         const canDemoteOthers =
           editing.role === 'Manager' && currentUserId !== undefined && editing.userId !== currentUserId;
@@ -165,7 +195,6 @@ export default function ManagersPage() {
         }
         await api.put(`/managers/${editing.id}`, payload);
       } else {
-        const phoneNumber = `+380${form.phoneDigits}`;
         await api.post<ManagerProfile>('/managers', {
           phoneNumber,
           name: form.name.trim()
@@ -175,7 +204,12 @@ export default function ManagersPage() {
       closeModal();
       await loadManagers();
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Не вдалося зберегти менеджера.'));
+      const fieldErrors = getSubmitFieldErrors(err, 'Не вдалося зберегти менеджера.');
+      if (fieldErrors.phone) {
+        setPhoneError(fieldErrors.phone);
+      } else {
+        setFormError(fieldErrors.general ?? 'Не вдалося зберегти менеджера.');
+      }
       setSaving(false);
     }
   };
@@ -318,6 +352,7 @@ export default function ManagersPage() {
               </div>
 
               <form onSubmit={saveManager} className="space-y-4">
+              {formError ? <div className="field-error-box">{formError}</div> : null}
               {!isCreateMode && editing && (
                 <div className={fieldLabelClass}>
                   Роль
@@ -411,16 +446,18 @@ export default function ManagersPage() {
                       !phoneRequiredForSubmit ||
                       Boolean(editing && editing.role === 'SuperAdmin' && editing.userId !== currentUserId)
                     }
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      setPhoneError('');
                       setForm((prev) => ({
                         ...prev,
                         phoneDigits: event.target.value.replace(DIGITS_ONLY_REGEX, '').slice(0, 9)
-                      }))
-                    }
+                      }));
+                    }}
                     className="manager-phone-field__input"
                     placeholder="XXXXXXXXX"
                   />
                 </div>
+                {phoneError ? <p className="field-error-hint">{phoneError}</p> : null}
                 {isEditingOwnProfile && role === 'Manager' ? (
                   <p className="mt-1 text-xs text-slate-400">Номер телефону може змінювати лише Адміністратор.</p>
                 ) : null}

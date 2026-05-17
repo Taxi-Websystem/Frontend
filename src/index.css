@@ -102,6 +102,12 @@
     color: rgb(248 113 113);
   }
 
+  /* Під полем — той самий відступ, що в text-xs підказки (mt-1) */
+  .field-error-hint {
+    @apply mt-1 text-xs leading-snug;
+    color: rgb(248 113 113);
+  }
+
   .field-select {
     @apply box-border h-[42px] w-full appearance-none rounded-xl border border-white/10 bg-[#1E293B] bg-no-repeat pl-4 pr-10 text-sm text-white;
     padding-top: 13px;

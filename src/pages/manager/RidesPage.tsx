@@ -632,7 +632,7 @@ export default function RidesPage() {
                 </label>
 
                 <AddressAutocomplete
-                    label="Звідки (вулиця)"
+                    label="Звідки"
                     value={form.fromAddress}
                     latitude={form.fromLatitude}
                     longitude={form.fromLongitude}
@@ -649,7 +649,7 @@ export default function RidesPage() {
                   />
 
                 <AddressAutocomplete
-                    label="Куди (вулиця)"
+                    label="Куди"
                     value={form.toAddress}
                     latitude={form.toLatitude}
                     longitude={form.toLongitude}

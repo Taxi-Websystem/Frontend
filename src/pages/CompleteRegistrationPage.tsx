@@ -152,7 +152,7 @@ export default function CompleteRegistrationPage() {
 
       <div className="relative z-[1] flex min-h-[100dvh] w-full flex-col items-center justify-center px-6 py-8 sm:px-8 lg:min-h-screen lg:w-1/2 lg:py-12">
         <div className="w-full max-w-lg">
-          <div className="mb-6 flex flex-col items-center gap-3 lg:mb-5">
+          <div className="mb-6 flex flex-col items-center gap-3">
             <div className="flex items-center justify-center gap-4">
               <button
                 type="button"
@@ -322,7 +322,7 @@ export default function CompleteRegistrationPage() {
             </div>
           </div>
 
-          <p className="mt-6 text-center text-xs leading-snug text-slate-500 sm:mt-8">© 2026 TAXI 839. Всі права захищені.</p>
+          <p className="mt-6 text-center text-xs leading-snug text-slate-500">© 2026 TAXI 839. Всі права захищені.</p>
         </div>
       </div>
 

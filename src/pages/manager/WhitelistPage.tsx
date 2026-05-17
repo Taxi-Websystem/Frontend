@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Loader2, Pencil, Plus, Save, ShieldCheck, Trash2, X } from 'lucide-react';
 import { api, getApiErrorMessage } from '../../api/axios';
+import { getSubmitFieldErrors, PHONE_DUPLICATE_MESSAGE } from '../../utils/formErrors';
 import { getCurrentRole, getCurrentUserId } from '../../utils/auth';
 import type { AppRole } from '../../utils/auth';
 import { getRoleLabel, parseApiRole } from '../../utils/roles';
@@ -45,6 +46,8 @@ export default function WhitelistPage() {
   const [items, setItems] = useState<WhitelistEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [formError, setFormError] = useState('');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<WhitelistEntry | null>(null);
@@ -93,9 +96,15 @@ export default function WhitelistPage() {
     return () => window.removeEventListener('dashboard:data-changed', onDashboardDataChanged as EventListener);
   }, []);
 
+  const clearModalErrors = () => {
+    setPhoneError('');
+    setFormError('');
+  };
+
   const openCreate = () => {
     setEditing(null);
     setForm(defaultForm);
+    clearModalErrors();
     setIsModalOpen(true);
   };
 
@@ -110,6 +119,7 @@ export default function WhitelistPage() {
       role: isSuperAdmin ? entry.role : 'Driver',
       isActive: entry.isActive
     });
+    clearModalErrors();
     setIsModalOpen(true);
   };
 
@@ -117,20 +127,35 @@ export default function WhitelistPage() {
     setIsModalOpen(false);
     setEditing(null);
     setForm(defaultForm);
+    clearModalErrors();
     setSaving(false);
   };
 
   const saveEntry = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    clearModalErrors();
 
     if (!isFormValid) {
-      setError('Номер телефону має містити 9 цифр після +380.');
+      setPhoneError('Номер телефону має містити 9 цифр після +380.');
       setSaving(false);
       return;
     }
 
     const phoneNumber = `+380${form.phoneDigits}`;
+
+    const duplicateEntry = items.find((item) => item.phoneNumber === phoneNumber);
+    if (!editing && duplicateEntry) {
+      setPhoneError(PHONE_DUPLICATE_MESSAGE);
+      setSaving(false);
+      return;
+    }
+
+    if (editing && editing.phoneNumber !== phoneNumber && duplicateEntry) {
+      setPhoneError(PHONE_DUPLICATE_MESSAGE);
+      setSaving(false);
+      return;
+    }
     const payload: Partial<WhitelistEntry> = {
       phoneNumber,
       role: isSuperAdmin ? form.role : 'Driver',
@@ -151,7 +176,12 @@ export default function WhitelistPage() {
       closeModal();
       await loadWhitelist();
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Не вдалося зберегти запис whitelist.'));
+      const fieldErrors = getSubmitFieldErrors(err, 'Не вдалося зберегти запис whitelist.');
+      if (fieldErrors.phone) {
+        setPhoneError(fieldErrors.phone);
+      } else {
+        setFormError(fieldErrors.general ?? 'Не вдалося зберегти запис whitelist.');
+      }
       setSaving(false);
     }
   };
@@ -270,6 +300,7 @@ export default function WhitelistPage() {
               </div>
 
               <form onSubmit={saveEntry} className="space-y-4">
+              {formError ? <div className="field-error-box">{formError}</div> : null}
 
               <FormSwitch
                 label="Активний"
@@ -337,16 +368,18 @@ export default function WhitelistPage() {
                     inputMode="numeric"
                     maxLength={9}
                     value={form.phoneDigits}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      setPhoneError('');
                       setForm((prev) => ({
                         ...prev,
                         phoneDigits: event.target.value.replace(DIGITS_ONLY_REGEX, '').slice(0, 9)
-                      }))
-                    }
+                      }));
+                    }}
                     className="manager-phone-field__input"
                     placeholder="XXXXXXXXX"
                   />
                 </div>
+                {phoneError ? <p className="field-error-hint">{phoneError}</p> : null}
               </label>
 
               <button

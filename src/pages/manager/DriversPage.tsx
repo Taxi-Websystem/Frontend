@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 're
 import { Link } from 'react-router-dom';
 import { CarFront, Loader2, Pencil, Plus, Save, SquareParking, Star, Trash2, UserRoundCheck, X } from 'lucide-react';
 import { api, getApiErrorMessage } from '../../api/axios';
+import { getSubmitFieldErrors, PHONE_DUPLICATE_MESSAGE } from '../../utils/formErrors';
 import { getCurrentRole } from '../../utils/auth';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import FormSwitch from '../../components/FormSwitch';
@@ -99,6 +100,8 @@ export default function DriversPage() {
   const [items, setItems] = useState<DriverListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [formError, setFormError] = useState('');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<DriverListItem | null>(null);
@@ -187,11 +190,17 @@ export default function DriversPage() {
     return () => window.removeEventListener('presence:changed', onPresenceChanged as EventListener);
   }, []);
 
+  const clearModalErrors = () => {
+    setPhoneError('');
+    setFormError('');
+  };
+
   const openCreate = () => {
     setEditing(null);
     setForm({
       ...defaultForm
     });
+    clearModalErrors();
     setIsModalOpen(true);
   };
 
@@ -207,6 +216,7 @@ export default function DriversPage() {
       userStatus: normalizeStatus(item.userStatus, index),
       profileRole: 'Driver'
     });
+    clearModalErrors();
     setIsModalOpen(true);
   };
 
@@ -214,23 +224,37 @@ export default function DriversPage() {
     setIsModalOpen(false);
     setEditing(null);
     setForm(defaultForm);
+    clearModalErrors();
     setSaving(false);
   };
 
   const saveDriver = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setError('');
+    clearModalErrors();
 
     if (!isFormValid) {
       if (form.phoneDigits.length !== 9) {
-        setError('Номер телефону має містити 9 цифр після +380.');
+        setPhoneError('Номер телефону має містити 9 цифр після +380.');
       }
       setSaving(false);
       return;
     }
 
     const phoneNumber = `+380${form.phoneDigits}`;
+
+    const duplicateDriver = items.find((item) => item.phoneNumber === phoneNumber);
+    if (!editing && duplicateDriver) {
+      setPhoneError(PHONE_DUPLICATE_MESSAGE);
+      setSaving(false);
+      return;
+    }
+
+    if (editing && editing.phoneNumber !== phoneNumber && duplicateDriver) {
+      setPhoneError(PHONE_DUPLICATE_MESSAGE);
+      setSaving(false);
+      return;
+    }
 
     const payload = {
       phoneNumber,
@@ -262,7 +286,12 @@ export default function DriversPage() {
       closeModal();
       await loadDrivers();
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Не вдалося зберегти водія.'));
+      const fieldErrors = getSubmitFieldErrors(err, 'Не вдалося зберегти водія.');
+      if (fieldErrors.phone) {
+        setPhoneError(fieldErrors.phone);
+      } else {
+        setFormError(fieldErrors.general ?? 'Не вдалося зберегти водія.');
+      }
       setSaving(false);
     }
   };
@@ -437,6 +466,7 @@ export default function DriversPage() {
               </div>
 
               <form onSubmit={saveDriver} className="space-y-4">
+              {formError ? <div className="field-error-box">{formError}</div> : null}
               {!isCreateMode &&
                 (canPromoteToManager ? (
                   <label className={fieldLabelClass}>
@@ -495,16 +525,18 @@ export default function DriversPage() {
                     inputMode="numeric"
                     maxLength={9}
                     value={form.phoneDigits}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      setPhoneError('');
                       setForm((prev) => ({
                         ...prev,
                         phoneDigits: event.target.value.replace(DIGITS_ONLY_REGEX, '').slice(0, 9)
-                      }))
-                    }
+                      }));
+                    }}
                     className="manager-phone-field__input"
                     placeholder="XXXXXXXXX"
                   />
                 </div>
+                {phoneError ? <p className="field-error-hint">{phoneError}</p> : null}
               </label>
 
               <div className="grid grid-cols-2 gap-3">
@@ -623,3 +655,7 @@ export default function DriversPage() {
     </section>
   );
 }
+
+
+
+
