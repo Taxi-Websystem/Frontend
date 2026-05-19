@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Loader2, Pencil, Plus, Save, Trash2, UsersRound, X } from 'lucide-react';
 import { api, getApiErrorMessage } from '../../api/axios';
+import { getSubmitFieldErrors, PHONE_DUPLICATE_MESSAGE } from '../../utils/formErrors';
 import { getCurrentRole, getCurrentUserId } from '../../utils/auth';
 import type { AppRole } from '../../utils/auth';
 import { getRoleLabel, parseApiRole } from '../../utils/roles';
@@ -10,6 +11,8 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import FormSwitch from '../../components/FormSwitch';
 import ModalPortal from '../../components/ModalPortal';
 import StatusPulseDot from '../../components/StatusPulseDot';
+import { getUserStatusLabel, type UserStatus } from '../../utils/userStatus';
+import { managerTablePad } from './managerTableStyles';
 
 interface ManagerProfile {
   id: number;
@@ -17,7 +20,7 @@ interface ManagerProfile {
   phoneNumber: string;
   name: string;
   role: AppRole;
-  status: 'Online' | 'Offline';
+  status: Exclude<UserStatus, 'InRide'>;
 }
 
 interface FormState {
@@ -45,6 +48,8 @@ export default function ManagersPage() {
   const [items, setItems] = useState<ManagerProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [formError, setFormError] = useState('');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<ManagerProfile | null>(null);
@@ -83,9 +88,46 @@ export default function ManagersPage() {
     void loadManagers();
   }, []);
 
+  useEffect(() => {
+    const onDashboardDataChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ entity?: string }>).detail;
+      if (detail?.entity === 'presence') {
+        return;
+      }
+      void loadManagers();
+    };
+
+    window.addEventListener('dashboard:data-changed', onDashboardDataChanged as EventListener);
+    return () => window.removeEventListener('dashboard:data-changed', onDashboardDataChanged as EventListener);
+  }, []);
+
+  useEffect(() => {
+    const onPresenceChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ userId: number; status: UserStatus }>).detail;
+      if (!detail) return;
+
+      setItems((prev) =>
+        prev.map((item) =>
+          item.userId === detail.userId && detail.status !== 'InRide'
+            ? { ...item, status: detail.status }
+            : item
+        )
+      );
+    };
+
+    window.addEventListener('presence:changed', onPresenceChanged as EventListener);
+    return () => window.removeEventListener('presence:changed', onPresenceChanged as EventListener);
+  }, []);
+
+  const clearModalErrors = () => {
+    setPhoneError('');
+    setFormError('');
+  };
+
   const openCreate = () => {
     setEditing(null);
     setForm(defaultForm);
+    clearModalErrors();
     setIsModalOpen(true);
   };
 
@@ -96,6 +138,7 @@ export default function ManagersPage() {
       name: sanitizeNameUa(item.name),
       editRole: 'Manager'
     });
+    clearModalErrors();
     setIsModalOpen(true);
   };
 
@@ -103,15 +146,35 @@ export default function ManagersPage() {
     setIsModalOpen(false);
     setEditing(null);
     setForm(defaultForm);
+    clearModalErrors();
     setSaving(false);
   };
 
   const saveManager = async (e: FormEvent) => {
     e.preventDefault();
-    if (!isFormValid) return;
+    if (!isFormValid) {
+      if (phoneRequiredForSubmit && form.phoneDigits.length !== 9) {
+        setPhoneError('Номер телефону має містити 9 цифр після +380.');
+      }
+      return;
+    }
 
     setSaving(true);
-    setError('');
+    clearModalErrors();
+
+    const phoneNumber = `+380${form.phoneDigits}`;
+    const duplicateManager = items.find((item) => item.phoneNumber === phoneNumber);
+    if (!editing && duplicateManager) {
+      setPhoneError(PHONE_DUPLICATE_MESSAGE);
+      setSaving(false);
+      return;
+    }
+
+    if (editing && editing.phoneNumber !== phoneNumber && duplicateManager) {
+      setPhoneError(PHONE_DUPLICATE_MESSAGE);
+      setSaving(false);
+      return;
+    }
 
     try {
       if (editing) {
@@ -123,7 +186,7 @@ export default function ManagersPage() {
           name: form.name.trim()
         };
         if (phoneRequiredForSubmit) {
-          payload.phoneNumber = `+380${form.phoneDigits}`;
+          payload.phoneNumber = phoneNumber;
         }
         const canDemoteOthers =
           editing.role === 'Manager' && currentUserId !== undefined && editing.userId !== currentUserId;
@@ -132,7 +195,6 @@ export default function ManagersPage() {
         }
         await api.put(`/managers/${editing.id}`, payload);
       } else {
-        const phoneNumber = `+380${form.phoneDigits}`;
         await api.post<ManagerProfile>('/managers', {
           phoneNumber,
           name: form.name.trim()
@@ -142,7 +204,12 @@ export default function ManagersPage() {
       closeModal();
       await loadManagers();
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Не вдалося зберегти менеджера.'));
+      const fieldErrors = getSubmitFieldErrors(err, 'Не вдалося зберегти менеджера.');
+      if (fieldErrors.phone) {
+        setPhoneError(fieldErrors.phone);
+      } else {
+        setFormError(fieldErrors.general ?? 'Не вдалося зберегти менеджера.');
+      }
       setSaving(false);
     }
   };
@@ -164,9 +231,14 @@ export default function ManagersPage() {
   return (
     <section className={pageCardClass}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-white">Менеджери</h2>
-          <p className="mt-1 text-sm text-slate-400">Список менеджерів та адміністраторів.</p>
+        <div className="flex items-start gap-3">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#EAB308]/15 text-[#EAB308]">
+            <UsersRound className="h-7 w-7" strokeWidth={2} />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-white">Менеджери</h2>
+            <p className="mt-1 text-sm text-slate-400">Список менеджерів та адміністраторів.</p>
+          </div>
         </div>
         <button
           type="button"
@@ -188,7 +260,7 @@ export default function ManagersPage() {
       )}
 
       {loading ? (
-        <div className="py-8 text-center text-slate-400">
+        <div className="text-center text-slate-400">
           <Loader2 className="mx-auto h-5 w-5 animate-spin" />
         </div>
       ) : (
@@ -196,12 +268,12 @@ export default function ManagersPage() {
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-slate-400">
-                <th className="px-3 py-2">ID</th>
-                <th className="px-3 py-2">Статус</th>
-                <th className="px-3 py-2">Роль</th>
-                <th className="px-3 py-2">Ім'я</th>
-                <th className="px-3 py-2">Номер телефону</th>
-                <th className="px-3 py-2 text-right">Дії</th>
+                <th className={managerTablePad}>ID</th>
+                <th className={managerTablePad}>Статус</th>
+                <th className={managerTablePad}>Роль</th>
+                <th className={managerTablePad}>Ім'я</th>
+                <th className={managerTablePad}>Номер телефону</th>
+                <th className={`${managerTablePad} text-right`}>Дії</th>
               </tr>
             </thead>
             <tbody>
@@ -216,20 +288,20 @@ export default function ManagersPage() {
 
                 return (
                   <tr key={`${item.userId}-${item.id}`} className="border-b border-white/10 text-slate-200">
-                    <td className="px-3 py-2">{item.userId}</td>
-                    <td className="px-3 py-2">
+                    <td className={managerTablePad}>{item.userId}</td>
+                    <td className={managerTablePad}>
                       <span
                         className="manager-status-chip manager-status-chip--interactive inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs"
                         data-status={statusKind}
                       >
                         <StatusPulseDot kind={statusKind} />
-                        {item.status === 'Online' ? 'Онлайн' : 'Офлайн'}
+                        {getUserStatusLabel(item.status)}
                       </span>
                     </td>
-                    <td className="px-3 py-2">{getRoleLabel(item.role)}</td>
-                    <td className="px-3 py-2">{item.name}</td>
-                    <td className="px-3 py-2 font-mono">{item.phoneNumber}</td>
-                    <td className="px-3 py-2">
+                    <td className={managerTablePad}>{getRoleLabel(item.role)}</td>
+                    <td className={managerTablePad}>{item.name}</td>
+                    <td className={`${managerTablePad} font-mono`}>{item.phoneNumber}</td>
+                    <td className={managerTablePad}>
                       <div className="flex items-center justify-end gap-2">
                         <button
                           type="button"
@@ -280,6 +352,7 @@ export default function ManagersPage() {
               </div>
 
               <form onSubmit={saveManager} className="space-y-4">
+              {formError ? <div className="field-error-box">{formError}</div> : null}
               {!isCreateMode && editing && (
                 <div className={fieldLabelClass}>
                   Роль
@@ -373,16 +446,18 @@ export default function ManagersPage() {
                       !phoneRequiredForSubmit ||
                       Boolean(editing && editing.role === 'SuperAdmin' && editing.userId !== currentUserId)
                     }
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      setPhoneError('');
                       setForm((prev) => ({
                         ...prev,
                         phoneDigits: event.target.value.replace(DIGITS_ONLY_REGEX, '').slice(0, 9)
-                      }))
-                    }
+                      }));
+                    }}
                     className="manager-phone-field__input"
                     placeholder="XXXXXXXXX"
                   />
                 </div>
+                {phoneError ? <p className="field-error-hint">{phoneError}</p> : null}
                 {isEditingOwnProfile && role === 'Manager' ? (
                   <p className="mt-1 text-xs text-slate-400">Номер телефону може змінювати лише Адміністратор.</p>
                 ) : null}
@@ -391,9 +466,17 @@ export default function ManagersPage() {
               <button
                 type="submit"
                 disabled={saving || !isFormValid}
-                className="manager-accent-glow manager-primary-btn mt-1 w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                className="manager-accent-glow manager-primary-btn relative mt-1 w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
-                {saving ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : 'Зберегти'}
+                <span className={`inline-flex items-center gap-2 ${saving ? 'invisible' : ''}`}>
+                  <Save size={16} />
+                  Зберегти
+                </span>
+                {saving ? (
+                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  </span>
+                ) : null}
               </button>
               </form>
             </div>

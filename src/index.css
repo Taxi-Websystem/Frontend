@@ -62,6 +62,9 @@
     padding-top: 13px;
     padding-bottom: 13px;
     line-height: 14px;
+    color-scheme: dark;
+    /* Явний токен = як .field-select, щоб UA не змішував фон по-різному */
+    background-color: rgb(30 41 59);
     transition:
       border-color 0.2s ease,
       box-shadow 0.3s ease;
@@ -70,6 +73,12 @@
   .field-input:disabled {
     @apply cursor-not-allowed opacity-60 text-white;
     -webkit-text-fill-color: #f8fafc;
+  }
+
+  .field-input:disabled::placeholder {
+    color: rgb(100 116 139);
+    -webkit-text-fill-color: rgb(100 116 139);
+    opacity: 1;
   }
 
   .field-input:focus,
@@ -93,12 +102,19 @@
     color: rgb(248 113 113);
   }
 
+  /* Під полем — той самий відступ, що в text-xs підказки (mt-1) */
+  .field-error-hint {
+    @apply mt-1 text-xs leading-snug;
+    color: rgb(248 113 113);
+  }
+
   .field-select {
     @apply box-border h-[42px] w-full appearance-none rounded-xl border border-white/10 bg-[#1E293B] bg-no-repeat pl-4 pr-10 text-sm text-white;
     padding-top: 13px;
     padding-bottom: 13px;
     line-height: 14px;
     color-scheme: dark;
+    background-color: rgb(30 41 59);
     transition:
       border-color 0.2s ease,
       box-shadow 0.3s ease;
@@ -174,6 +190,41 @@
     opacity: 0.38;
   }
 
+  @keyframes login-taxi-glow-drift {
+    0% {
+      transform: translate(-32%, 32%) scale(1);
+      opacity: 0.46;
+    }
+    20% {
+      opacity: 0.68;
+    }
+    40% {
+      opacity: 0.5;
+    }
+    50% {
+      transform: translate(32%, -32%) scale(1.14);
+      opacity: 0.78;
+    }
+    65% {
+      opacity: 0.58;
+    }
+    80% {
+      opacity: 0.74;
+    }
+    100% {
+      transform: translate(-32%, 32%) scale(1);
+      opacity: 0.46;
+    }
+  }
+
+  .login-taxi-glow {
+    background: radial-gradient(circle at center, rgba(234, 179, 8, 0.48) 0%, rgba(234, 179, 8, 0.28) 42%, transparent 74%);
+    filter: blur(16px);
+    animation: login-taxi-glow-drift 14s ease-in-out infinite;
+    mix-blend-mode: screen;
+    pointer-events: none;
+  }
+
   .login-accent-glow {
     box-shadow: none;
     transition:
@@ -216,6 +267,11 @@
   .manager-primary-btn {
     border: 1px solid transparent;
     box-shadow: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3rem;
+    box-sizing: border-box;
   }
 
   .manager-primary-btn:hover:not(:disabled),
@@ -336,6 +392,39 @@
       0 12px 40px rgba(239, 68, 68, 0.32);
   }
 
+  /** Як manager-icon-btn; зелена підсвітка «Онлайн» лише на hover/focus. */
+  .manager-action-btn--online {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: rgb(203 213 225);
+    box-shadow: none;
+    transition:
+      color 0.2s ease,
+      border-color 0.2s ease,
+      background-color 0.2s ease,
+      box-shadow 0.3s ease,
+      opacity 0.2s ease;
+  }
+
+  .manager-action-btn--online:hover:not(:disabled),
+  .manager-action-btn--online:focus-visible:not(:disabled) {
+    color: rgba(16, 185, 129, 0.95);
+    border-color: rgba(16, 185, 129, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(16, 185, 129, 0.78),
+      0 12px 40px rgba(16, 185, 129, 0.32);
+  }
+
+  .manager-action-btn--online:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
   .manager-status-chip {
     border: 1px solid rgba(255, 255, 255, 0.1);
     background-color: rgba(255, 255, 255, 0.05);
@@ -386,5 +475,82 @@
     box-shadow:
       0 0 0 1px rgba(156, 163, 175, 0.78),
       0 12px 40px rgba(107, 114, 128, 0.28);
+  }
+
+  /* Аналітика водія: плавні підсвітки / обводки (як transition у кнопок) */
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes analytics-recharts-bar-glow-in {
+      from {
+        filter: drop-shadow(0 0 0px rgba(234, 179, 8, 0)) drop-shadow(0 0 0px rgba(234, 179, 8, 0));
+      }
+      to {
+        filter: drop-shadow(0 0 6px rgba(234, 179, 8, 0.78)) drop-shadow(0 10px 32px rgba(234, 179, 8, 0.32));
+      }
+    }
+
+    .analytics-recharts .recharts-active-bar path,
+    .analytics-recharts .recharts-active-bar rect {
+      animation: analytics-recharts-bar-glow-in 280ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .analytics-recharts .recharts-active-bar path,
+    .analytics-recharts .recharts-active-bar rect {
+      filter: drop-shadow(0 0 6px rgba(234, 179, 8, 0.78)) drop-shadow(0 10px 32px rgba(234, 179, 8, 0.32));
+    }
+  }
+
+  /* Курсор тултіпу: path (area — лінія; bar — прямокутник як path). `d` — плавне переміщення рамки між колонками.
+     Echo-копія (.analytics-tooltip-cursor-echo) гаситься через @keyframes — без transition, щоб не зривати анімацію. */
+  .analytics-recharts path.recharts-tooltip-cursor:not(.analytics-tooltip-cursor-echo) {
+    transition:
+      d 260ms cubic-bezier(0.4, 0, 0.2, 1),
+      stroke 260ms cubic-bezier(0.4, 0, 0.2, 1),
+      stroke-width 260ms cubic-bezier(0.4, 0, 0.2, 1),
+      stroke-opacity 260ms cubic-bezier(0.4, 0, 0.2, 1),
+      fill 260ms cubic-bezier(0.4, 0, 0.2, 1),
+      fill-opacity 260ms cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 260ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Копія курсора після mouseleave: Recharts знімає справжній path миттєво — echo гаситься в CSS */
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes analytics-tooltip-cursor-echo-out {
+      from {
+        opacity: 1;
+        stroke-opacity: 1;
+        fill-opacity: 1;
+      }
+
+      to {
+        opacity: 0;
+        stroke-opacity: 0;
+        fill-opacity: 0;
+      }
+    }
+
+    .analytics-recharts .analytics-tooltip-cursor-echo--out {
+      animation: analytics-tooltip-cursor-echo-out 260ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .analytics-recharts .analytics-tooltip-cursor-echo--out {
+      opacity: 0;
+    }
+  }
+
+  .analytics-recharts circle.recharts-active-dot {
+    transition:
+      r 200ms cubic-bezier(0.4, 0, 0.2, 1),
+      stroke-width 260ms cubic-bezier(0.4, 0, 0.2, 1),
+      fill 260ms cubic-bezier(0.4, 0, 0.2, 1),
+      stroke 260ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Recharts hover — ті ж RGBA, що у .manager-primary-btn:hover (SVG filter замість box-shadow) */
+  .recharts-hover-glow {
+    filter: drop-shadow(0 0 6px rgba(234, 179, 8, 0.78)) drop-shadow(0 10px 32px rgba(234, 179, 8, 0.32));
   }
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Loader2, Pencil, Plus, Save, ShieldCheck, Trash2, X } from 'lucide-react';
 import { api, getApiErrorMessage } from '../../api/axios';
+import { getSubmitFieldErrors, PHONE_DUPLICATE_MESSAGE } from '../../utils/formErrors';
 import { getCurrentRole, getCurrentUserId } from '../../utils/auth';
 import type { AppRole } from '../../utils/auth';
 import { getRoleLabel, parseApiRole } from '../../utils/roles';
@@ -9,6 +10,7 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import FormSwitch from '../../components/FormSwitch';
 import ModalPortal from '../../components/ModalPortal';
 import StatusPulseDot from '../../components/StatusPulseDot';
+import { managerTablePad } from './managerTableStyles';
 
 type WhitelistRole = AppRole;
 
@@ -44,6 +46,8 @@ export default function WhitelistPage() {
   const [items, setItems] = useState<WhitelistEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [formError, setFormError] = useState('');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<WhitelistEntry | null>(null);
@@ -79,9 +83,28 @@ export default function WhitelistPage() {
     void loadWhitelist();
   }, []);
 
+  useEffect(() => {
+    const onDashboardDataChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ entity?: string }>).detail;
+      if (detail?.entity === 'presence') {
+        return;
+      }
+      void loadWhitelist();
+    };
+
+    window.addEventListener('dashboard:data-changed', onDashboardDataChanged as EventListener);
+    return () => window.removeEventListener('dashboard:data-changed', onDashboardDataChanged as EventListener);
+  }, []);
+
+  const clearModalErrors = () => {
+    setPhoneError('');
+    setFormError('');
+  };
+
   const openCreate = () => {
     setEditing(null);
     setForm(defaultForm);
+    clearModalErrors();
     setIsModalOpen(true);
   };
 
@@ -96,6 +119,7 @@ export default function WhitelistPage() {
       role: isSuperAdmin ? entry.role : 'Driver',
       isActive: entry.isActive
     });
+    clearModalErrors();
     setIsModalOpen(true);
   };
 
@@ -103,20 +127,35 @@ export default function WhitelistPage() {
     setIsModalOpen(false);
     setEditing(null);
     setForm(defaultForm);
+    clearModalErrors();
     setSaving(false);
   };
 
   const saveEntry = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    clearModalErrors();
 
     if (!isFormValid) {
-      setError('Номер телефону має містити 9 цифр після +380.');
+      setPhoneError('Номер телефону має містити 9 цифр після +380.');
       setSaving(false);
       return;
     }
 
     const phoneNumber = `+380${form.phoneDigits}`;
+
+    const duplicateEntry = items.find((item) => item.phoneNumber === phoneNumber);
+    if (!editing && duplicateEntry) {
+      setPhoneError(PHONE_DUPLICATE_MESSAGE);
+      setSaving(false);
+      return;
+    }
+
+    if (editing && editing.phoneNumber !== phoneNumber && duplicateEntry) {
+      setPhoneError(PHONE_DUPLICATE_MESSAGE);
+      setSaving(false);
+      return;
+    }
     const payload: Partial<WhitelistEntry> = {
       phoneNumber,
       role: isSuperAdmin ? form.role : 'Driver',
@@ -137,7 +176,12 @@ export default function WhitelistPage() {
       closeModal();
       await loadWhitelist();
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Не вдалося зберегти запис whitelist.'));
+      const fieldErrors = getSubmitFieldErrors(err, 'Не вдалося зберегти запис whitelist.');
+      if (fieldErrors.phone) {
+        setPhoneError(fieldErrors.phone);
+      } else {
+        setFormError(fieldErrors.general ?? 'Не вдалося зберегти запис whitelist.');
+      }
       setSaving(false);
     }
   };
@@ -154,9 +198,14 @@ export default function WhitelistPage() {
   return (
     <section className={pageCardClass}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-white">Whitelist</h2>
-          <p className="mt-1 text-sm text-slate-400">Список користувачів з доступом до системи.</p>
+        <div className="flex items-start gap-3">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#EAB308]/15 text-[#EAB308]">
+            <ShieldCheck className="h-7 w-7" strokeWidth={2} />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-white">Whitelist</h2>
+            <p className="mt-1 text-sm text-slate-400">Список користувачів з доступом до системи.</p>
+          </div>
         </div>
         <button
           type="button"
@@ -173,7 +222,7 @@ export default function WhitelistPage() {
       )}
 
       {loading ? (
-        <div className="py-8 text-center text-slate-400">
+        <div className="text-center text-slate-400">
           <Loader2 className="mx-auto h-5 w-5 animate-spin" />
         </div>
       ) : (
@@ -181,18 +230,18 @@ export default function WhitelistPage() {
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-slate-400">
-                <th className="px-3 py-2">ID</th>
-                <th className="px-3 py-2">Статус</th>
-                <th className="px-3 py-2">Роль</th>
-                <th className="px-3 py-2">Номер телефону</th>
-                <th className="px-3 py-2 text-right">Дії</th>
+                <th className={managerTablePad}>ID</th>
+                <th className={managerTablePad}>Статус</th>
+                <th className={managerTablePad}>Роль</th>
+                <th className={managerTablePad}>Номер телефону</th>
+                <th className={`${managerTablePad} text-right`}>Дії</th>
               </tr>
             </thead>
             <tbody>
               {items.map((entry) => (
                 <tr key={entry.id} className="border-b border-white/10 text-slate-200">
-                  <td className="px-3 py-2">{entry.id}</td>
-                  <td className="px-3 py-2">
+                  <td className={managerTablePad}>{entry.id}</td>
+                  <td className={managerTablePad}>
                     <span
                       className="manager-status-chip manager-status-chip--interactive inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs"
                       data-status={entry.isActive ? 'online' : 'offline'}
@@ -201,9 +250,9 @@ export default function WhitelistPage() {
                       {entry.isActive ? 'Активний' : 'Неактивний'}
                     </span>
                   </td>
-                  <td className="px-3 py-2">{getRoleLabel(entry.role)}</td>
-                  <td className="px-3 py-2 font-mono">{entry.phoneNumber}</td>
-                  <td className="px-3 py-2">
+                  <td className={managerTablePad}>{getRoleLabel(entry.role)}</td>
+                  <td className={`${managerTablePad} font-mono`}>{entry.phoneNumber}</td>
+                  <td className={managerTablePad}>
                     <div className="flex items-center justify-end gap-2">
                       <button
                         type="button"
@@ -251,6 +300,7 @@ export default function WhitelistPage() {
               </div>
 
               <form onSubmit={saveEntry} className="space-y-4">
+              {formError ? <div className="field-error-box">{formError}</div> : null}
 
               <FormSwitch
                 label="Активний"
@@ -318,24 +368,34 @@ export default function WhitelistPage() {
                     inputMode="numeric"
                     maxLength={9}
                     value={form.phoneDigits}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      setPhoneError('');
                       setForm((prev) => ({
                         ...prev,
                         phoneDigits: event.target.value.replace(DIGITS_ONLY_REGEX, '').slice(0, 9)
-                      }))
-                    }
+                      }));
+                    }}
                     className="manager-phone-field__input"
                     placeholder="XXXXXXXXX"
                   />
                 </div>
+                {phoneError ? <p className="field-error-hint">{phoneError}</p> : null}
               </label>
 
               <button
                 type="submit"
                 disabled={saving || !isFormValid}
-                className="manager-accent-glow manager-primary-btn mt-1 w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                className="manager-accent-glow manager-primary-btn relative mt-1 w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
-                {saving ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : 'Зберегти'}
+                <span className={`inline-flex items-center gap-2 ${saving ? 'invisible' : ''}`}>
+                  <Save size={16} />
+                  Зберегти
+                </span>
+                {saving ? (
+                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  </span>
+                ) : null}
               </button>
               </form>
             </div>

@@ -7,6 +7,10 @@ interface ConfirmDialogProps {
   message: string;
   confirmText?: string;
   cancelText?: string;
+  /** danger — як видалення; primary — жовта кнопка; online — зелений outline */
+  confirmTone?: 'danger' | 'primary' | 'online';
+  /** online — зелене обведення як статус «Онлайн» */
+  cancelTone?: 'default' | 'online';
   children?: ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
@@ -18,10 +22,22 @@ export default function ConfirmDialog({
   message,
   confirmText = 'Видалити',
   cancelText = 'Скасувати',
+  confirmTone = 'danger',
+  cancelTone = 'default',
   children,
   onConfirm,
   onCancel
 }: ConfirmDialogProps) {
+  const confirmClassName =
+    confirmTone === 'primary'
+      ? 'manager-accent-glow manager-primary-btn rounded-full bg-[#EAB308] px-4 py-2 text-sm font-semibold text-[#0F172A]'
+      : confirmTone === 'online'
+        ? 'manager-action-btn--online px-4 py-2 text-sm font-semibold'
+        : 'manager-icon-btn manager-icon-btn--danger rounded-full px-4 py-2 text-sm font-semibold text-slate-200';
+  const cancelClassName =
+    cancelTone === 'online'
+      ? 'manager-action-btn--online px-4 py-2 text-sm font-semibold'
+      : 'manager-icon-btn rounded-full px-4 py-2 text-sm font-semibold text-slate-200';
   if (!open) return null;
 
   return (
@@ -32,18 +48,10 @@ export default function ConfirmDialog({
           <p className="mt-2 text-sm text-slate-300">{message}</p>
           {children ? <div className="mt-4">{children}</div> : null}
           <div className="mt-6 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="manager-icon-btn rounded-full px-4 py-2 text-sm font-semibold text-slate-200"
-            >
+            <button type="button" onClick={onCancel} className={cancelClassName}>
               {cancelText}
             </button>
-            <button
-              type="button"
-              onClick={onConfirm}
-              className="manager-icon-btn manager-icon-btn--danger rounded-full px-4 py-2 text-sm font-semibold"
-            >
+            <button type="button" onClick={onConfirm} className={confirmClassName}>
               {confirmText}
             </button>
           </div>

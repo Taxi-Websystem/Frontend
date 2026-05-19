@@ -1,18 +1,23 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import { BarChart2, Loader2, Pencil, Plus, Star, Trash2, UserRoundCheck, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { CarFront, Loader2, Pencil, Plus, Save, SquareParking, Star, Trash2, UserRoundCheck, X } from 'lucide-react';
 import { api, getApiErrorMessage } from '../../api/axios';
+import { getSubmitFieldErrors, PHONE_DUPLICATE_MESSAGE } from '../../utils/formErrors';
 import { getCurrentRole } from '../../utils/auth';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import FormSwitch from '../../components/FormSwitch';
 import ModalPortal from '../../components/ModalPortal';
 import StatusPulseDot, { type StatusPulseKind } from '../../components/StatusPulseDot';
-import { sanitizeCarBrandOrModel, sanitizeCarColorUa } from '../../utils/carFields';
+import { sanitizeCarBrandOrModel, sanitizeCarColorUa, sanitizeCarMake } from '../../utils/carFields';
 import { formatLicensePlateInput, LICENSE_PLATE_REGEX } from '../../utils/licensePlate';
 import { sanitizeNameUa } from '../../utils/nameFields';
 import { DIGITS_ONLY_REGEX } from '../../utils/regex';
 import { getRoleLabel } from '../../utils/roles';
-
-type UserStatus = 'Offline' | 'Online' | 'InRide';
+import { managerTablePad } from './managerTableStyles';
+import { getUserStatusLabel, type UserStatus } from '../../utils/userStatus';
+import CarAutocomplete from '../../components/CarAutocomplete';
+import { searchCarMakes, searchCarModels } from '../../utils/vehicleCatalog';
+import { searchCarColorsUa } from '../../utils/carColors';
 
 interface DriverListItem {
   id: number;
@@ -58,32 +63,32 @@ const fieldLabelClass = 'mb-1 block text-sm font-medium text-slate-300';
 const statusToCode: Record<UserStatus, number> = {
   Offline: 0,
   Online: 1,
-  InRide: 2
-};
-
-const statusLabels: Record<UserStatus, string> = {
-  Online: 'Онлайн',
-  InRide: 'У дорозі',
-  Offline: 'Офлайн'
+  InRide: 2,
+  Break: 3
 };
 
 function userStatusToPulseKind(status: UserStatus): StatusPulseKind {
   if (status === 'Online') return 'online';
   if (status === 'InRide') return 'inRide';
+  if (status === 'Break') return 'created';
   return 'offline';
 }
 
 function normalizeStatus(input: UserStatus | number | undefined, index: number): UserStatus {
-  if (typeof input === 'string' && (input === 'Online' || input === 'InRide' || input === 'Offline')) {
+  if (
+    typeof input === 'string' &&
+    (input === 'Online' || input === 'InRide' || input === 'Offline' || input === 'Break')
+  ) {
     return input;
   }
   if (typeof input === 'number') {
     if (input === 1) return 'Online';
     if (input === 2) return 'InRide';
+    if (input === 3) return 'Break';
     return 'Offline';
   }
 
-  return (['Online', 'InRide', 'Offline'] as UserStatus[])[index % 3];
+  return (['Online', 'InRide', 'Offline', 'Break'] as UserStatus[])[index % 4];
 }
 
 function formatRating(value: number | null | undefined): string {
@@ -98,6 +103,8 @@ export default function DriversPage() {
   const [items, setItems] = useState<DriverListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [formError, setFormError] = useState('');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<DriverListItem | null>(null);
@@ -152,11 +159,51 @@ export default function DriversPage() {
     void loadDrivers();
   }, []);
 
+  useEffect(() => {
+    const onDashboardDataChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ entity?: string }>).detail;
+      if (detail?.entity === 'presence') {
+        return;
+      }
+      void loadDrivers();
+    };
+
+    window.addEventListener('dashboard:data-changed', onDashboardDataChanged as EventListener);
+    return () => window.removeEventListener('dashboard:data-changed', onDashboardDataChanged as EventListener);
+  }, []);
+
+  useEffect(() => {
+    const onPresenceChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ userId: number; status: UserStatus }>).detail;
+      if (!detail) return;
+
+      setItems((prev) =>
+        prev.map((item) =>
+          item.userId === detail.userId
+            ? {
+                ...item,
+                userStatus: detail.status
+              }
+            : item
+        )
+      );
+    };
+
+    window.addEventListener('presence:changed', onPresenceChanged as EventListener);
+    return () => window.removeEventListener('presence:changed', onPresenceChanged as EventListener);
+  }, []);
+
+  const clearModalErrors = () => {
+    setPhoneError('');
+    setFormError('');
+  };
+
   const openCreate = () => {
     setEditing(null);
     setForm({
       ...defaultForm
     });
+    clearModalErrors();
     setIsModalOpen(true);
   };
 
@@ -172,6 +219,7 @@ export default function DriversPage() {
       userStatus: normalizeStatus(item.userStatus, index),
       profileRole: 'Driver'
     });
+    clearModalErrors();
     setIsModalOpen(true);
   };
 
@@ -179,23 +227,37 @@ export default function DriversPage() {
     setIsModalOpen(false);
     setEditing(null);
     setForm(defaultForm);
+    clearModalErrors();
     setSaving(false);
   };
 
   const saveDriver = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setError('');
+    clearModalErrors();
 
     if (!isFormValid) {
       if (form.phoneDigits.length !== 9) {
-        setError('Номер телефону має містити 9 цифр після +380.');
+        setPhoneError('Номер телефону має містити 9 цифр після +380.');
       }
       setSaving(false);
       return;
     }
 
     const phoneNumber = `+380${form.phoneDigits}`;
+
+    const duplicateDriver = items.find((item) => item.phoneNumber === phoneNumber);
+    if (!editing && duplicateDriver) {
+      setPhoneError(PHONE_DUPLICATE_MESSAGE);
+      setSaving(false);
+      return;
+    }
+
+    if (editing && editing.phoneNumber !== phoneNumber && duplicateDriver) {
+      setPhoneError(PHONE_DUPLICATE_MESSAGE);
+      setSaving(false);
+      return;
+    }
 
     const payload = {
       phoneNumber,
@@ -227,7 +289,12 @@ export default function DriversPage() {
       closeModal();
       await loadDrivers();
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Не вдалося зберегти водія.'));
+      const fieldErrors = getSubmitFieldErrors(err, 'Не вдалося зберегти водія.');
+      if (fieldErrors.phone) {
+        setPhoneError(fieldErrors.phone);
+      } else {
+        setFormError(fieldErrors.general ?? 'Не вдалося зберегти водія.');
+      }
       setSaving(false);
     }
   };
@@ -263,9 +330,14 @@ export default function DriversPage() {
   return (
     <section className={pageCardClass}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-white">Водії</h2>
-          <p className="mt-1 text-sm text-slate-400">Список водіїв.</p>
+        <div className="flex items-start gap-3">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#EAB308]/15 text-[#EAB308]">
+            <SquareParking className="h-7 w-7" strokeWidth={2} />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-white">Водії</h2>
+            <p className="mt-1 text-sm text-slate-400">Список водіїв.</p>
+          </div>
         </div>
         <button
           type="button"
@@ -284,7 +356,7 @@ export default function DriversPage() {
           'Водіїв онлайн'
         )}
         {statMiniCard(
-          <BarChart2 className="h-7 w-7" />,
+          <CarFront className="h-7 w-7" strokeWidth={2} />,
           loading ? <Loader2 className="h-6 w-6 animate-spin" /> : String(stats.totalTrips),
           'Поїздок загалом'
         )}
@@ -302,7 +374,7 @@ export default function DriversPage() {
       )}
 
       {loading ? (
-        <div className="py-8 text-center text-slate-400">
+        <div className="text-center text-slate-400">
           <Loader2 className="mx-auto h-5 w-5 animate-spin" />
         </div>
       ) : (
@@ -310,13 +382,13 @@ export default function DriversPage() {
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-slate-400">
-                <th className="px-3 py-2">ID</th>
-                <th className="px-3 py-2">Статус</th>
-                <th className="px-3 py-2">Ім'я</th>
-                <th className="px-3 py-2">Номер телефону</th>
-                <th className="px-3 py-2 text-right tabular-nums">Поїздки</th>
-                <th className="px-3 py-2 text-right tabular-nums">Рейтинг</th>
-                <th className="px-3 py-2 text-right">Дії</th>
+                <th className={managerTablePad}>ID</th>
+                <th className={managerTablePad}>Статус</th>
+                <th className={managerTablePad}>Ім'я</th>
+                <th className={managerTablePad}>Номер телефону</th>
+                <th className={`${managerTablePad} text-right tabular-nums`}>Поїздки</th>
+                <th className={`${managerTablePad} text-right tabular-nums`}>Рейтинг</th>
+                <th className={`${managerTablePad} text-right`}>Дії</th>
               </tr>
             </thead>
             <tbody>
@@ -325,23 +397,30 @@ export default function DriversPage() {
                 const statusKind = userStatusToPulseKind(status);
                 return (
                   <tr key={item.id} className="border-b border-white/10 text-slate-200">
-                    <td className="px-3 py-2">{item.userId}</td>
-                    <td className="px-3 py-2">
+                    <td className={managerTablePad}>{item.userId}</td>
+                    <td className={managerTablePad}>
                       <span
                         className="manager-status-chip manager-status-chip--interactive inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs"
                         data-status={statusKind}
                       >
                         <StatusPulseDot kind={statusKind} />
-                        {statusLabels[status]}
+                        {getUserStatusLabel(status)}
                       </span>
                     </td>
-                    <td className="px-3 py-2">{item.name}</td>
-                    <td className="px-3 py-2 font-mono">{item.phoneNumber}</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-white">{item.tripCount ?? 0}</td>
-                    <td className="px-3 py-2 text-right font-medium tabular-nums text-[#EAB308]">
+                    <td className={managerTablePad}>
+                      <Link
+                        to={`/manager/analytics/${item.id}`}
+                        className="text-[#EAB308] hover:underline"
+                      >
+                        {item.name}
+                      </Link>
+                    </td>
+                    <td className={`${managerTablePad} font-mono`}>{item.phoneNumber}</td>
+                    <td className={`${managerTablePad} text-right tabular-nums text-white`}>{item.tripCount ?? 0}</td>
+                    <td className={`${managerTablePad} text-right font-medium tabular-nums text-[#EAB308]`}>
                       {formatRating(item.averageRating)}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className={managerTablePad}>
                       <div className="flex items-center justify-end gap-2">
                         <button
                           type="button"
@@ -390,6 +469,7 @@ export default function DriversPage() {
               </div>
 
               <form onSubmit={saveDriver} className="space-y-4">
+              {formError ? <div className="field-error-box">{formError}</div> : null}
               {!isCreateMode &&
                 (canPromoteToManager ? (
                   <label className={fieldLabelClass}>
@@ -448,69 +528,73 @@ export default function DriversPage() {
                     inputMode="numeric"
                     maxLength={9}
                     value={form.phoneDigits}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      setPhoneError('');
                       setForm((prev) => ({
                         ...prev,
                         phoneDigits: event.target.value.replace(DIGITS_ONLY_REGEX, '').slice(0, 9)
-                      }))
-                    }
+                      }));
+                    }}
                     className="manager-phone-field__input"
                     placeholder="XXXXXXXXX"
                   />
                 </div>
+                {phoneError ? <p className="field-error-hint">{phoneError}</p> : null}
               </label>
 
               <div className="grid grid-cols-2 gap-3">
-                <label className={fieldLabelClass}>
-                  Марка авто
-                  <input
-                    value={form.carMake}
-                    lang="en"
-                    onChange={(event) =>
-                      setForm((prev) => ({
+                <CarAutocomplete
+                  required
+                  label="Марка авто"
+                  value={form.carMake}
+                  placeholder="Toyota"
+                  hint="Англійською (латиниця)"
+                  search={searchCarMakes}
+                  normalize={sanitizeCarMake}
+                  onChange={(next) =>
+                    setForm((prev) => {
+                      const sameMake = next.trim().toLowerCase() === prev.carMake.trim().toLowerCase();
+                      return {
                         ...prev,
-                        carMake: sanitizeCarBrandOrModel(event.target.value)
-                      }))
-                    }
-                    className="mt-2 field-input"
-                    placeholder="Toyota"
-                  />
-                  <p className="mt-1 text-xs text-slate-400">Англійською (латиниця)</p>
-                </label>
-                <label className={fieldLabelClass}>
-                  Модель авто
-                  <input
-                    value={form.carModel}
-                    lang="en"
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        carModel: sanitizeCarBrandOrModel(event.target.value)
-                      }))
-                    }
-                    className="mt-2 field-input"
-                    placeholder="Camry"
-                  />
-                  <p className="mt-1 text-xs text-slate-400">Англійською (латиниця)</p>
-                </label>
-              </div>
-
-              <label className={fieldLabelClass}>
-                Колір авто
-                <input
-                  value={form.carColor}
-                  lang="uk"
-                  onChange={(event) =>
+                        carMake: next,
+                        carModel: sameMake ? prev.carModel : ''
+                      };
+                    })
+                  }
+                />
+                <CarAutocomplete
+                  required
+                  label="Модель авто"
+                  value={form.carModel}
+                  disabled={!form.carMake.trim()}
+                  placeholder='Camry'
+                  hint="Англійською (латиниця)"
+                  search={(query) => searchCarModels(form.carMake, query)}
+                  normalize={sanitizeCarBrandOrModel}
+                  onChange={(next) =>
                     setForm((prev) => ({
                       ...prev,
-                      carColor: sanitizeCarColorUa(event.target.value)
+                      carModel: next
                     }))
                   }
-                  className="mt-2 field-input"
-                  placeholder="Чорний"
                 />
-                <p className="mt-1 text-xs text-slate-400">Українською (кирилиця)</p>
-              </label>
+              </div>
+
+              <CarAutocomplete
+                required
+                label="Колір авто"
+                value={form.carColor}
+                placeholder="Чорний"
+                hint="Українською (кирилиця)"
+                search={searchCarColorsUa}
+                normalize={sanitizeCarColorUa}
+                onChange={(next) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    carColor: next
+                  }))
+                }
+              />
 
               <label className={fieldLabelClass}>
                 Номер авто
@@ -531,9 +615,17 @@ export default function DriversPage() {
               <button
                 type="submit"
                 disabled={saving || !isFormValid}
-                className="manager-accent-glow manager-primary-btn mt-1 w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                className="manager-accent-glow manager-primary-btn relative mt-1 w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
-                {saving ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : 'Зберегти'}
+                <span className={`inline-flex items-center gap-2 ${saving ? 'invisible' : ''}`}>
+                  <Save size={16} />
+                  Зберегти
+                </span>
+                {saving ? (
+                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  </span>
+                ) : null}
               </button>
               </form>
             </div>
@@ -568,3 +660,7 @@ export default function DriversPage() {
     </section>
   );
 }
+
+
+
+

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, ShieldCheck, ArrowRight, Loader2, ChevronLeft, Car, UserRoundCheck, CheckCircle2 } from 'lucide-react';
+import { CarFront, Phone, ShieldCheck, ArrowRight, Loader2, ChevronLeft, Car, UserRoundCheck } from 'lucide-react';
 import AuthBackgroundLayers from '../components/AuthBackgroundLayers';
 import { api } from '../api/axios';
 import { DIGITS_ONLY_REGEX } from '../utils/regex';
@@ -27,24 +27,34 @@ export default function LoginPage() {
   const fieldLabelClass = 'mb-2 block text-sm font-medium text-slate-300';
   const errorBoxClass = 'field-error-box';
   const primaryButtonClass =
-    'login-accent-glow mt-1 flex h-[58px] w-full items-center justify-center gap-2 rounded-full bg-[#EAB308] px-4 text-base font-semibold text-[#0F172A] transition-[filter,opacity,box-shadow] duration-300 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none';
+    'login-accent-glow relative flex h-[58px] w-full items-center justify-center gap-2 rounded-full bg-[#EAB308] px-4 text-base font-semibold text-[#0F172A] transition-[filter,opacity,box-shadow] duration-300 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none';
   const statCardClass =
     'rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl backdrop-blur-xl sm:p-5';
 
-  const loadPublicStats = async () => {
-    setPublicStatsLoading(true);
+  const loadPublicStats = async (showLoading = true) => {
+    if (showLoading) {
+      setPublicStatsLoading(true);
+    }
     try {
       const response = await api.get<LoginPublicStats>('/auth/public-stats');
       setPublicStats(response.data);
     } catch {
       setPublicStats(null);
     } finally {
-      setPublicStatsLoading(false);
+      if (showLoading) {
+        setPublicStatsLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     void loadPublicStats();
+
+    const intervalId = window.setInterval(() => {
+      void loadPublicStats(false);
+    }, 30000);
+
+    return () => window.clearInterval(intervalId);
   }, []);
 
   const handleSendCode = async (e: React.FormEvent) => {
@@ -102,13 +112,13 @@ export default function LoginPage() {
 
       <div className="relative z-[1] flex min-h-[100dvh] w-full flex-col items-center justify-center px-6 py-8 sm:px-8 lg:min-h-screen lg:w-1/2 lg:py-12">
         <div className="w-full max-w-lg">
-          <div className="mb-6 flex flex-col items-center gap-3 lg:mb-5">
+          <div className="mb-6 flex flex-col items-center gap-3">
             <div className="flex items-center justify-center gap-4">
               <div className="login-accent-glow flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#EAB308] hover:brightness-105">
                 <Car className="h-7 w-7 text-[#0F172A]" />
               </div>
               <h1 className="text-left text-5xl font-bold tracking-tight text-white">
-                Taxi <span className="text-[#EAB308]">839</span>
+                TAXI <span className="text-[#EAB308]">839</span>
               </h1>
             </div>
             <p className="text-center text-sm text-slate-400">Таксі - це просто, зручно та швидко.</p>
@@ -142,19 +152,19 @@ export default function LoginPage() {
                       className="min-w-0 flex-1 bg-transparent px-4 py-4 font-mono text-lg text-white outline-none placeholder:text-slate-500"
                     />
                   </div>
+                  {error ? <div className={`${errorBoxClass} mt-5`}>{error}</div> : null}
                 </div>
 
-                {error && <div className={errorBoxClass}>{error}</div>}
-
                 <button type="submit" disabled={loading || !isPhoneValid} className={primaryButtonClass}>
+                  <span className={`inline-flex items-center gap-2 ${loading ? 'invisible' : ''}`}>
+                    Отримати код
+                    <ArrowRight className="h-5 w-5" />
+                  </span>
                   {loading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <>
-                      Отримати код
-                      <ArrowRight className="h-5 w-5" />
-                    </>
-                  )}
+                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    </span>
+                  ) : null}
                 </button>
 
                 <p className="text-center text-sm text-slate-400">Ви отримаєте одноразовий код підтвердження.</p>
@@ -183,19 +193,19 @@ export default function LoginPage() {
                       className="w-full bg-transparent py-4 pl-11 pr-11 text-center font-mono text-lg tabular-nums tracking-[0.2em] text-white outline-none placeholder:text-slate-500"
                     />
                   </div>
+                  {error ? <div className={`${errorBoxClass} mt-5`}>{error}</div> : null}
                 </div>
 
-                {error && <div className={errorBoxClass}>{error}</div>}
-
                 <button type="submit" disabled={loading || code.length !== 6} className={primaryButtonClass}>
+                  <span className={`inline-flex items-center gap-2 ${loading ? 'invisible' : ''}`}>
+                    Увійти
+                    <ArrowRight className="h-5 w-5" />
+                  </span>
                   {loading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <>
-                      Увійти
-                      <ArrowRight className="h-5 w-5" />
-                    </>
-                  )}
+                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    </span>
+                  ) : null}
                 </button>
 
                 <p className="text-center text-sm text-slate-400">Код дійсний протягом 5 хвилин.</p>
@@ -240,7 +250,7 @@ export default function LoginPage() {
             <div className={statCardClass}>
               <div className="flex items-center gap-3">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#EAB308]/15 text-[#EAB308]">
-                  <CheckCircle2 className="h-7 w-7" />
+                  <CarFront className="h-7 w-7" strokeWidth={2} aria-hidden />
                 </div>
                 <div>
                   <p className="flex min-h-9 items-center text-2xl font-bold tabular-nums text-white">
@@ -258,14 +268,17 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <p className="mt-6 text-center text-xs leading-snug text-slate-500 sm:mt-8">© 2026 Taxi 839. Всі права захищені.</p>
+          <p className="mt-6 text-center text-xs leading-snug text-slate-500">© 2026 TAXI 839. Всі права захищені.</p>
         </div>
       </div>
 
       <div className="relative z-[1] hidden min-h-screen w-1/2 flex-col lg:flex">
         <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-visible p-6 sm:p-10">
           <div className="relative aspect-square w-full max-w-lg min-h-[280px] max-h-[min(72vh,520px)] overflow-visible">
-            <div className="absolute inset-0 z-[1] flex items-center justify-center">
+            <div className="absolute left-1/2 top-1/2 z-[3] h-[76%] w-[76%] -translate-x-1/2 -translate-y-1/2" aria-hidden>
+              <div className="login-taxi-glow h-full w-full rounded-full" />
+            </div>
+            <div className="absolute inset-0 z-[4] flex items-center justify-center">
               <svg
                 className="h-[76%] w-[76%] max-h-[min(48vh,400px)] max-w-[min(48vh,400px)] text-[#EAB308] opacity-[0.42]"
                 viewBox="0 0 24 24"

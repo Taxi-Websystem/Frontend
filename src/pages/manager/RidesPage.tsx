@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Activity, Ban, CheckCircle2, Eye, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Activity, Ban, CheckCircle2, Eye, Flag, Loader2, MapPin, Pencil, Plus, Route, Save, Trash2, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, getApiErrorMessage } from '../../api/axios';
 import { getCurrentRole } from '../../utils/auth';
@@ -12,6 +12,12 @@ import {
   RATING_DUPLICATED_SEPARATOR_REGEX,
   RATING_EDITABLE_REGEX
 } from '../../utils/regex';
+import { managerTablePad } from './managerTableStyles';
+import type { UserStatus } from '../../utils/userStatus';
+import AddressAutocomplete from '../../components/AddressAutocomplete';
+import RideRouteMap, { type RideMapData } from '../../components/RideRouteMap';
+import { compactAddressLabel, fetchDrivingDistanceKm } from '../../utils/geo';
+import { toDatetimeLocalValue } from '../../utils/datetime';
 
 type RideStatus = 'Created' | 'Accepted' | 'InRide' | 'Completed' | 'Canceled';
 
@@ -24,9 +30,16 @@ interface RideItem {
   rating: number | null;
   fromAddress: string;
   toAddress: string;
+  fromLatitude?: number | null;
+  fromLongitude?: number | null;
+  toLatitude?: number | null;
+  toLongitude?: number | null;
   startTime: string | null;
   endTime: string | null;
   createdAt: string;
+  distanceKm: number;
+  price: number;
+  driverProfit: number | null;
 }
 
 interface DriverOption {
@@ -34,7 +47,7 @@ interface DriverOption {
   userId: number;
   name: string;
   phoneNumber: string;
-  userStatus?: 'Offline' | 'Online' | 'InRide' | number;
+  userStatus?: UserStatus | number;
 }
 
 interface RideFormState {
@@ -43,8 +56,13 @@ interface RideFormState {
   ratingInput: string;
   fromAddress: string;
   toAddress: string;
+  fromLatitude: number | null;
+  fromLongitude: number | null;
+  toLatitude: number | null;
+  toLongitude: number | null;
   startTime: string;
   endTime: string;
+  distanceKm: string;
 }
 
 const defaultForm: RideFormState = {
@@ -53,8 +71,13 @@ const defaultForm: RideFormState = {
   ratingInput: '',
   fromAddress: '',
   toAddress: '',
+  fromLatitude: null,
+  fromLongitude: null,
+  toLatitude: null,
+  toLongitude: null,
   startTime: '',
-  endTime: ''
+  endTime: '',
+  distanceKm: ''
 };
 
 const pageCardClass =
@@ -110,13 +133,30 @@ export default function RidesPage() {
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [form, setForm] = useState<RideFormState>(defaultForm);
   const [drivers, setDrivers] = useState<DriverOption[]>([]);
+  const [distanceLoading, setDistanceLoading] = useState(false);
+  const [mapRideId, setMapRideId] = useState<number | null>(null);
+  const [mapData, setMapData] = useState<RideMapData | null>(null);
+  const [mapLoading, setMapLoading] = useState(false);
 
   const isCreateMode = editing === null;
   const ratingRaw = form.ratingInput.trim();
   const isRatingValid =
     ratingRaw.length === 0 ||
     RATING_1_TO_5_DECIMAL_REGEX.test(ratingRaw);
-  const isFormValid = form.fromAddress.trim().length > 0 && form.toAddress.trim().length > 0 && isRatingValid;
+  const distanceNum = Number(form.distanceKm.replace(',', '.'));
+  const isDistanceValid = !Number.isNaN(distanceNum) && distanceNum >= 0;
+  const hasCoords =
+    form.fromLatitude != null &&
+    form.fromLongitude != null &&
+    form.toLatitude != null &&
+    form.toLongitude != null;
+  const isFormValid =
+    form.fromAddress.trim().length > 0 &&
+    form.toAddress.trim().length > 0 &&
+    hasCoords &&
+    isRatingValid &&
+    isDistanceValid &&
+    distanceNum > 0;
   const isDriverLockedOnEdit =
     editing !== null &&
     (editing.status === 'InRide' || editing.status === 'Canceled' || editing.status === 'Completed');
@@ -185,6 +225,72 @@ export default function RidesPage() {
     void loadDrivers();
   }, []);
 
+  useEffect(() => {
+    if (
+      form.fromLatitude == null ||
+      form.fromLongitude == null ||
+      form.toLatitude == null ||
+      form.toLongitude == null
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    setDistanceLoading(true);
+    void fetchDrivingDistanceKm(
+      form.fromLongitude,
+      form.fromLatitude,
+      form.toLongitude,
+      form.toLatitude
+    )
+      .then((km) => {
+        if (cancelled || km == null) return;
+        setForm((prev) => ({ ...prev, distanceKm: String(km) }));
+      })
+      .finally(() => {
+        if (!cancelled) setDistanceLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [form.fromLatitude, form.fromLongitude, form.toLatitude, form.toLongitude]);
+
+  useEffect(() => {
+    const onDashboardDataChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ entity?: string }>).detail;
+      if (detail?.entity === 'presence') {
+        return;
+      }
+      void loadRides();
+      void loadDrivers();
+    };
+
+    window.addEventListener('dashboard:data-changed', onDashboardDataChanged as EventListener);
+    return () => window.removeEventListener('dashboard:data-changed', onDashboardDataChanged as EventListener);
+  }, []);
+
+  useEffect(() => {
+    const onPresenceChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ userId: number; status: import('../../utils/userStatus').UserStatus }>).detail;
+      if (!detail) return;
+
+      setDrivers((prev) =>
+        prev.map((driver) =>
+          driver.userId === detail.userId
+            ? {
+                ...driver,
+                userStatus: detail.status
+              }
+            : driver
+        )
+      );
+    };
+
+    window.addEventListener('presence:changed', onPresenceChanged as EventListener);
+    return () => window.removeEventListener('presence:changed', onPresenceChanged as EventListener);
+  }, []);
+
   const openCreate = () => {
     setEditing(null);
     setForm(defaultForm);
@@ -197,10 +303,15 @@ export default function RidesPage() {
       driverId: ride.driverId ? String(ride.driverId) : '',
       status: ride.status,
       ratingInput: ride.rating != null ? String(ride.rating) : '',
-      fromAddress: ride.fromAddress,
-      toAddress: ride.toAddress,
-      startTime: ride.startTime ? ride.startTime.slice(0, 16) : '',
-      endTime: ride.endTime ? ride.endTime.slice(0, 16) : ''
+      fromAddress: compactAddressLabel(ride.fromAddress),
+      toAddress: compactAddressLabel(ride.toAddress),
+      fromLatitude: ride.fromLatitude ?? null,
+      fromLongitude: ride.fromLongitude ?? null,
+      toLatitude: ride.toLatitude ?? null,
+      toLongitude: ride.toLongitude ?? null,
+      startTime: toDatetimeLocalValue(ride.startTime),
+      endTime: toDatetimeLocalValue(ride.endTime),
+      distanceKm: String(ride.distanceKm ?? 0)
     });
     setIsModalOpen(true);
   };
@@ -223,10 +334,15 @@ export default function RidesPage() {
       driverId: form.driverId ? Number(form.driverId) : null,
       status: form.status,
       rating: form.ratingInput ? Number(form.ratingInput.replace(',', '.')) : null,
-      fromAddress: form.fromAddress.trim(),
-      toAddress: form.toAddress.trim(),
+      fromAddress: compactAddressLabel(form.fromAddress),
+      toAddress: compactAddressLabel(form.toAddress),
+      fromLatitude: form.fromLatitude,
+      fromLongitude: form.fromLongitude,
+      toLatitude: form.toLatitude,
+      toLongitude: form.toLongitude,
       startTime: form.startTime ? new Date(form.startTime).toISOString() : null,
-      endTime: form.endTime ? new Date(form.endTime).toISOString() : null
+      endTime: form.endTime ? new Date(form.endTime).toISOString() : null,
+      distanceKm: Number(form.distanceKm.replace(',', '.'))
     };
 
     try {
@@ -243,6 +359,23 @@ export default function RidesPage() {
     }
   };
 
+  const openMapModal = (rideId: number) => {
+    setMapRideId(rideId);
+    setMapData(null);
+    setMapLoading(true);
+    void api
+      .get<RideMapData>(`/rides/${rideId}/map`)
+      .then((res) => setMapData(res.data))
+      .catch(() => setMapData(null))
+      .finally(() => setMapLoading(false));
+  };
+
+  const closeMapModal = () => {
+    setMapRideId(null);
+    setMapData(null);
+    setMapLoading(false);
+  };
+
   const deleteRide = async (id: number) => {
     try {
       await api.delete(`/rides/${id}`);
@@ -255,9 +388,14 @@ export default function RidesPage() {
   return (
     <section className={pageCardClass}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-white">Поїздки</h2>
-          <p className="mt-1 text-sm text-slate-400">Список поїздок.</p>
+        <div className="flex items-start gap-3">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#EAB308]/15 text-[#EAB308]">
+            <Route className="h-7 w-7" strokeWidth={2} />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-white">Поїздки</h2>
+            <p className="mt-1 text-sm text-slate-400">Список поїздок.</p>
+          </div>
         </div>
         <button
           type="button"
@@ -318,7 +456,7 @@ export default function RidesPage() {
       )}
 
       {loading ? (
-        <div className="py-8 text-center text-slate-400">
+        <div className="text-center text-slate-400">
           <Loader2 className="mx-auto h-5 w-5 animate-spin" />
         </div>
       ) : (
@@ -326,14 +464,17 @@ export default function RidesPage() {
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-slate-400">
-                <th className="px-3 py-2">ID</th>
-                <th className="px-3 py-2">Статус</th>
-                <th className="px-3 py-2">Водій</th>
-                <th className="px-3 py-2">Звідки</th>
-                <th className="px-3 py-2">Куди</th>
-                <th className="px-3 py-2">Час у дорозі</th>
-                <th className="px-3 py-2 text-right">Рейтинг</th>
-                <th className="px-3 py-2 text-right">Дії</th>
+                <th className={managerTablePad}>ID</th>
+                <th className={managerTablePad}>Статус</th>
+                <th className={managerTablePad}>Водій</th>
+                <th className={managerTablePad}>Звідки</th>
+                <th className={managerTablePad}>Куди</th>
+                <th className={`${managerTablePad} text-right`}>Км</th>
+                <th className={`${managerTablePad} text-right`}>Ціна</th>
+                <th className={`${managerTablePad} text-right tabular-nums`}>Прибуток</th>
+                <th className={`${managerTablePad} whitespace-nowrap`}>Час у дорозі</th>
+                <th className={`${managerTablePad} text-right`}>Рейтинг</th>
+                <th className={`${managerTablePad} text-right`}>Дії</th>
               </tr>
             </thead>
             <tbody>
@@ -342,8 +483,8 @@ export default function RidesPage() {
                 const driverLabel = ride.driverName || ride.driverPhoneNumber || '—';
                 return (
                   <tr key={ride.id} className="border-b border-white/10 text-slate-200">
-                    <td className="px-3 py-2 tabular-nums">{ride.id}</td>
-                    <td className="px-3 py-2">
+                    <td className={`${managerTablePad} tabular-nums`}>{ride.id}</td>
+                    <td className={managerTablePad}>
                       <span
                         className="manager-status-chip manager-status-chip--interactive inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs"
                         data-status={chip.kind}
@@ -352,26 +493,47 @@ export default function RidesPage() {
                         {chip.label}
                       </span>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className={managerTablePad}>
                       {driverLabel === '—' ? (
                         '—'
                       ) : (
-                        <Link to="/manager/development" className="text-[#EAB308] hover:underline">
+                        <Link
+                          to={ride.driverId ? `/manager/analytics/${ride.driverId}` : '#'}
+                          className="text-[#EAB308] hover:underline"
+                        >
                           {driverLabel}
                         </Link>
                       )}
                     </td>
-                    <td className="max-w-xs truncate px-3 py-2">{ride.fromAddress}</td>
-                    <td className="max-w-xs truncate px-3 py-2">{ride.toAddress}</td>
-                    <td className="px-3 py-2">{formatDuration(ride.startTime, ride.endTime)}</td>
-                    <td className="px-3 py-2 text-right font-medium tabular-nums text-[#EAB308]">
+                    <td className={`max-w-xs truncate ${managerTablePad}`}>
+                      {compactAddressLabel(ride.fromAddress)}
+                    </td>
+                    <td className={`max-w-xs truncate ${managerTablePad}`}>
+                      {compactAddressLabel(ride.toAddress)}
+                    </td>
+                    <td className={`${managerTablePad} text-right tabular-nums`}>
+                      {Number(ride.distanceKm).toFixed(2)}
+                    </td>
+                    <td className={`${managerTablePad} text-right tabular-nums`}>{Number(ride.price).toFixed(2)}</td>
+                    <td className={`${managerTablePad} text-right font-medium tabular-nums text-[#EAB308]`}>
+                      {ride.driverProfit != null ? Number(ride.driverProfit).toFixed(2) : '—'}
+                    </td>
+                    <td className={`${managerTablePad} whitespace-nowrap tabular-nums`}>
+                      {formatDuration(ride.startTime, ride.endTime)}
+                    </td>
+                    <td className={`${managerTablePad} text-right font-medium tabular-nums text-[#EAB308]`}>
                       {ride.rating != null ? Number(ride.rating).toFixed(2) : '—'}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className={managerTablePad}>
                       <div className="flex items-center justify-end gap-2">
-                        <Link to="/manager/development" title="На карті" className="manager-icon-btn">
+                        <button
+                          type="button"
+                          title="На карті"
+                          onClick={() => openMapModal(ride.id)}
+                          className="manager-icon-btn"
+                        >
                           <Eye size={14} />
-                        </Link>
+                        </button>
                         <button
                           type="button"
                           title="Редагувати"
@@ -454,41 +616,77 @@ export default function RidesPage() {
                       onChange={(event) => setForm((prev) => ({ ...prev, driverId: event.target.value }))}
                       className="mt-2 field-select font-mono disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      <option value="">Оберіть водія</option>
-                      {selectableDrivers.map((driver) => (
-                        <option key={driver.id} value={driver.id}>
-                          №{driver.userId} — {driver.name} ({driver.phoneNumber})
-                        </option>
-                      ))}
-                    </select>
-                    {!isDriverLockedOnEdit && (
-                      <p className="mt-1 text-xs text-slate-400">В списку доступні лише водії зі статусом Онлайн.</p>
-                    )}
-                    {!isCreateMode && isDriverLockedOnEdit && (
-                      <p className="mt-1 text-xs text-slate-400">Водія можна змінити тільки перед початком поїздки.</p>
-                    )}
-                  </label>
-
-                <label className={fieldLabelClass}>
-                  Звідки
-                  <input
-                    required
-                    value={form.fromAddress}
-                    onChange={(event) => setForm((prev) => ({ ...prev, fromAddress: event.target.value }))}
-                    className="mt-2 field-input"
-                    placeholder="Шевченка, 123"
-                  />
+                    <option value="">Оберіть водія</option>
+                    {selectableDrivers.map((driver) => (
+                      <option key={driver.id} value={driver.id}>
+                        №{driver.userId} — {driver.name} ({driver.phoneNumber})
+                      </option>
+                    ))}
+                  </select>
+                  {!isDriverLockedOnEdit && (
+                    <p className="mt-1 text-xs text-slate-400">В списку доступні лише водії зі статусом «Онлайн».</p>
+                  )}
+                  {!isCreateMode && isDriverLockedOnEdit && (
+                    <p className="mt-1 text-xs text-slate-400">Водія можна змінити тільки перед початком поїздки.</p>
+                  )}
                 </label>
 
-                <label className={fieldLabelClass}>
-                  Куди
-                  <input
-                    required
-                    value={form.toAddress}
-                    onChange={(event) => setForm((prev) => ({ ...prev, toAddress: event.target.value }))}
-                    className="mt-2 field-input"
-                    placeholder="Шевченка, 321"
+                <AddressAutocomplete
+                    label="Звідки"
+                    value={form.fromAddress}
+                    latitude={form.fromLatitude}
+                    longitude={form.fromLongitude}
+                    placeholder="Шевченка, 123"
+                    onChange={(next) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        fromAddress: next?.displayName ?? '',
+                        fromLatitude: next?.latitude ?? null,
+                        fromLongitude: next?.longitude ?? null,
+                        distanceKm: next ? prev.distanceKm : ''
+                      }))
+                    }
                   />
+
+                <AddressAutocomplete
+                    label="Куди"
+                    value={form.toAddress}
+                    latitude={form.toLatitude}
+                    longitude={form.toLongitude}
+                    placeholder="Сихівська, 10"
+                    onChange={(next) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        toAddress: next?.displayName ?? '',
+                        toLatitude: next?.latitude ?? null,
+                        toLongitude: next?.longitude ?? null,
+                        distanceKm: next ? prev.distanceKm : ''
+                      }))
+                    }
+                  />
+
+                <label className={fieldLabelClass}>
+                  Відстань (км)
+                  <div className="relative mt-2">
+                    <div
+                      className={`field-input tabular-nums select-none ${
+                        !distanceLoading && !form.distanceKm ? 'text-slate-500' : 'text-white'
+                      }`}
+                      aria-readonly
+                    >
+                      {distanceLoading
+                        ? hasCoords
+                          ? 'Обчислення…'
+                          : 'Оберіть обидві адреси'
+                        : form.distanceKm ||
+                          (hasCoords ? 'Обчислення…' : 'Оберіть обидві адреси')}
+                    </div>
+                    {distanceLoading ? (
+                      <span className="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-center">
+                        <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                      </span>
+                    ) : null}
+                  </div>
                 </label>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -515,11 +713,72 @@ export default function RidesPage() {
                 <button
                   type="submit"
                   disabled={saving || !isFormValid}
-                  className="manager-accent-glow manager-primary-btn mt-1 w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                  className="manager-accent-glow manager-primary-btn relative mt-1 w-full rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
                 >
-                  {saving ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : 'Зберегти'}
+                  <span className={`inline-flex items-center gap-2 ${saving ? 'invisible' : ''}`}>
+                    <Save size={16} />
+                    Зберегти
+                  </span>
+                  {saving ? (
+                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    </span>
+                  ) : null}
                 </button>
               </form>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
+
+      {mapRideId !== null && (
+        <ModalPortal>
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-x-hidden overflow-y-auto bg-slate-950/80 p-4 sm:items-center sm:p-6">
+            <div className="mx-auto my-6 w-full max-w-3xl rounded-3xl border border-white/10 bg-[#0F172A] p-6 shadow-2xl ring-1 ring-white/5 sm:my-0">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Маршрут поїздки №{mapRideId}</h3>
+                  {mapData ? (
+                    <div className="mt-2 space-y-2 text-sm text-slate-200">
+                      <p className="flex items-start gap-2">
+                        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#EAB308]" aria-hidden />
+                        <span>
+                          <span className="text-slate-400">Звідки: </span>
+                          {compactAddressLabel(mapData.fromAddress)}
+                        </span>
+                      </p>
+                      <p className="flex items-start gap-2">
+                        <Flag className="mt-0.5 h-4 w-4 shrink-0 text-[#EAB308]" aria-hidden />
+                        <span>
+                          <span className="text-slate-400">Куди: </span>
+                          {compactAddressLabel(mapData.toAddress)}
+                        </span>
+                      </p>
+                      <p className="flex items-start gap-2 tabular-nums">
+                        <Route className="mt-0.5 h-4 w-4 shrink-0 text-[#EAB308]" aria-hidden />
+                        <span>
+                          <span className="text-slate-400">Відстань: </span>
+                          <span className="text-white">{Number(mapData.distanceKm).toFixed(2)} км</span>
+                        </span>
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+                <button
+                  type="button"
+                  onClick={closeMapModal}
+                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              {mapLoading || !mapData ? (
+                <div className="flex h-[320px] items-center justify-center text-slate-400">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : (
+                <RideRouteMap data={mapData} />
+              )}
             </div>
           </div>
         </ModalPortal>
