@@ -584,7 +584,7 @@ export default function AnalyticsPage() {
               <Loader2 className="h-6 w-6 animate-spin" aria-hidden />
             ) : summary != null ? (
               <>
-                <span className="tabular-nums">{summary.totalProfit.toFixed(2)}</span>
+                <span className="tabular-nums text-[#EAB308]">{summary.totalProfit.toFixed(2)}</span>
               </>
             ) : (
               '—'

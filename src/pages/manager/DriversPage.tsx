@@ -8,13 +8,16 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import FormSwitch from '../../components/FormSwitch';
 import ModalPortal from '../../components/ModalPortal';
 import StatusPulseDot, { type StatusPulseKind } from '../../components/StatusPulseDot';
-import { sanitizeCarBrandOrModel, sanitizeCarColorUa } from '../../utils/carFields';
+import { sanitizeCarBrandOrModel, sanitizeCarColorUa, sanitizeCarMake } from '../../utils/carFields';
 import { formatLicensePlateInput, LICENSE_PLATE_REGEX } from '../../utils/licensePlate';
 import { sanitizeNameUa } from '../../utils/nameFields';
 import { DIGITS_ONLY_REGEX } from '../../utils/regex';
 import { getRoleLabel } from '../../utils/roles';
 import { managerTablePad } from './managerTableStyles';
 import { getUserStatusLabel, type UserStatus } from '../../utils/userStatus';
+import CarAutocomplete from '../../components/CarAutocomplete';
+import { searchCarMakes, searchCarModels } from '../../utils/vehicleCatalog';
+import { searchCarColorsUa } from '../../utils/carColors';
 
 interface DriverListItem {
   id: number;
@@ -540,56 +543,58 @@ export default function DriversPage() {
               </label>
 
               <div className="grid grid-cols-2 gap-3">
-                <label className={fieldLabelClass}>
-                  Марка авто
-                  <input
-                    value={form.carMake}
-                    lang="en"
-                    onChange={(event) =>
-                      setForm((prev) => ({
+                <CarAutocomplete
+                  required
+                  label="Марка авто"
+                  value={form.carMake}
+                  placeholder="Toyota"
+                  hint="Англійською (латиниця)"
+                  search={searchCarMakes}
+                  normalize={sanitizeCarMake}
+                  onChange={(next) =>
+                    setForm((prev) => {
+                      const sameMake = next.trim().toLowerCase() === prev.carMake.trim().toLowerCase();
+                      return {
                         ...prev,
-                        carMake: sanitizeCarBrandOrModel(event.target.value)
-                      }))
-                    }
-                    className="mt-2 field-input"
-                    placeholder="Toyota"
-                  />
-                  <p className="mt-1 text-xs text-slate-400">Англійською (латиниця)</p>
-                </label>
-                <label className={fieldLabelClass}>
-                  Модель авто
-                  <input
-                    value={form.carModel}
-                    lang="en"
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        carModel: sanitizeCarBrandOrModel(event.target.value)
-                      }))
-                    }
-                    className="mt-2 field-input"
-                    placeholder="Camry"
-                  />
-                  <p className="mt-1 text-xs text-slate-400">Англійською (латиниця)</p>
-                </label>
-              </div>
-
-              <label className={fieldLabelClass}>
-                Колір авто
-                <input
-                  value={form.carColor}
-                  lang="uk"
-                  onChange={(event) =>
+                        carMake: next,
+                        carModel: sameMake ? prev.carModel : ''
+                      };
+                    })
+                  }
+                />
+                <CarAutocomplete
+                  required
+                  label="Модель авто"
+                  value={form.carModel}
+                  disabled={!form.carMake.trim()}
+                  placeholder='Camry'
+                  hint="Англійською (латиниця)"
+                  search={(query) => searchCarModels(form.carMake, query)}
+                  normalize={sanitizeCarBrandOrModel}
+                  onChange={(next) =>
                     setForm((prev) => ({
                       ...prev,
-                      carColor: sanitizeCarColorUa(event.target.value)
+                      carModel: next
                     }))
                   }
-                  className="mt-2 field-input"
-                  placeholder="Чорний"
                 />
-                <p className="mt-1 text-xs text-slate-400">Українською (кирилиця)</p>
-              </label>
+              </div>
+
+              <CarAutocomplete
+                required
+                label="Колір авто"
+                value={form.carColor}
+                placeholder="Чорний"
+                hint="Українською (кирилиця)"
+                search={searchCarColorsUa}
+                normalize={sanitizeCarColorUa}
+                onChange={(next) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    carColor: next
+                  }))
+                }
+              />
 
               <label className={fieldLabelClass}>
                 Номер авто

@@ -152,7 +152,7 @@ export default function LoginPage() {
                       className="min-w-0 flex-1 bg-transparent px-4 py-4 font-mono text-lg text-white outline-none placeholder:text-slate-500"
                     />
                   </div>
-                  {error ? <div className={`${errorBoxClass} mt-1`}>{error}</div> : null}
+                  {error ? <div className={`${errorBoxClass} mt-5`}>{error}</div> : null}
                 </div>
 
                 <button type="submit" disabled={loading || !isPhoneValid} className={primaryButtonClass}>
@@ -193,7 +193,7 @@ export default function LoginPage() {
                       className="w-full bg-transparent py-4 pl-11 pr-11 text-center font-mono text-lg tabular-nums tracking-[0.2em] text-white outline-none placeholder:text-slate-500"
                     />
                   </div>
-                  {error ? <div className={`${errorBoxClass} mt-1`}>{error}</div> : null}
+                  {error ? <div className={`${errorBoxClass} mt-5`}>{error}</div> : null}
                 </div>
 
                 <button type="submit" disabled={loading || code.length !== 6} className={primaryButtonClass}>

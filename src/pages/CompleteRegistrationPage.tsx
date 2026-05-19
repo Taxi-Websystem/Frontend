@@ -4,10 +4,13 @@ import { ArrowRight, Car, Gauge, Loader2, Save, ShieldCheck } from 'lucide-react
 import AuthBackgroundLayers from '../components/AuthBackgroundLayers';
 import { api } from '../api/axios';
 import type { AppRole } from '../utils/auth';
-import { sanitizeCarBrandOrModel, sanitizeCarColorUa } from '../utils/carFields';
+import { sanitizeCarBrandOrModel, sanitizeCarColorUa, sanitizeCarMake } from '../utils/carFields';
 import { formatLicensePlateInput, LICENSE_PLATE_REGEX } from '../utils/licensePlate';
 import { sanitizeNameUa } from '../utils/nameFields';
 import { DIGITS_ONLY_REGEX } from '../utils/regex';
+import CarAutocomplete from '../components/CarAutocomplete';
+import { searchCarMakes, searchCarModels } from '../utils/vehicleCatalog';
+import { searchCarColorsUa } from '../utils/carColors';
 
 interface AuthMe {
   phoneNumber: string;
@@ -213,42 +216,42 @@ export default function CompleteRegistrationPage() {
 
               {isDriver ? (
                 <>
-                  <label className={fieldLabelClass}>
-                    Марка авто
-                    <input
-                      required
-                      value={carBrand}
-                      lang="en"
-                      onChange={(e) => setCarBrand(sanitizeCarBrandOrModel(e.target.value))}
-                      className="mt-2 field-input"
-                      placeholder="Toyota"
-                    />
-                    <p className={hintTextClass}>Англійською (латиниця)</p>
-                  </label>
-                  <label className={fieldLabelClass}>
-                    Модель авто
-                    <input
-                      required
-                      value={carModel}
-                      lang="en"
-                      onChange={(e) => setCarModel(sanitizeCarBrandOrModel(e.target.value))}
-                      className="mt-2 field-input"
-                      placeholder="Camry"
-                    />
-                    <p className={hintTextClass}>Англійською (латиниця)</p>
-                  </label>
-                  <label className={fieldLabelClass}>
-                    Колір авто
-                    <input
-                      required
-                      value={carColor}
-                      lang="uk"
-                      onChange={(e) => setCarColor(sanitizeCarColorUa(e.target.value))}
-                      className="mt-2 field-input"
-                      placeholder="Чорний"
-                    />
-                    <p className={hintTextClass}>Українською (кирилиця)</p>
-                  </label>
+                  <CarAutocomplete
+                    required
+                    label="Марка авто"
+                    value={carBrand}
+                    placeholder="Toyota"
+                    hint="Англійською (латиниця)"
+                    search={searchCarMakes}
+                    normalize={sanitizeCarMake}
+                    onChange={(next) => {
+                      setCarBrand(next);
+                      if (next.trim().toLowerCase() !== carBrand.trim().toLowerCase()) {
+                        setCarModel('');
+                      }
+                    }}
+                  />
+                  <CarAutocomplete
+                    required
+                    label="Модель авто"
+                    value={carModel}
+                    disabled={!carBrand.trim()}
+                    placeholder='Camry'
+                    hint="Англійською (латиниця)"
+                    search={(query) => searchCarModels(carBrand, query)}
+                    normalize={sanitizeCarBrandOrModel}
+                    onChange={(next) => setCarModel(next)}
+                  />
+                  <CarAutocomplete
+                    required
+                    label="Колір авто"
+                    value={carColor}
+                    placeholder="Чорний"
+                    hint="Українською (кирилиця)"
+                    search={searchCarColorsUa}
+                    normalize={sanitizeCarColorUa}
+                    onChange={(next) => setCarColor(next)}
+                  />
                   <label className={fieldLabelClass}>
                     Номер авто
                     <input

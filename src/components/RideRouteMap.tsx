@@ -61,10 +61,7 @@ export default function RideRouteMap({ data, className = '' }: RideRouteMapProps
     data.toLatitude != null &&
     data.toLongitude != null;
 
-  const actualLine = useMemo(
-    () => data.routePoints.map((p) => [p.latitude, p.longitude] as [number, number]),
-    [data.routePoints]
-  );
+  const actualLine = useMemo<[number, number][]>(() => [], []);
 
   useEffect(() => {
     if (!hasCoords || tab !== 'planned') return;

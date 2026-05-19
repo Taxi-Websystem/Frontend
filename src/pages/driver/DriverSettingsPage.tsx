@@ -7,7 +7,6 @@ import type { UserStatus } from '../../utils/userStatus';
 interface DriverPresenceSettingsDto {
   isAutoStatusEnabled: boolean;
   isAutoAcceptOrdersEnabled: boolean;
-  isRouteOptimizationEnabled: boolean;
   currentStatus: UserStatus;
   isManualControlAllowed: boolean;
   profileId: number;
@@ -43,7 +42,7 @@ export default function DriverSettingsPage() {
     patch: Partial<
       Pick<
         DriverPresenceSettingsDto,
-        'isAutoStatusEnabled' | 'isAutoAcceptOrdersEnabled' | 'isRouteOptimizationEnabled'
+        'isAutoStatusEnabled' | 'isAutoAcceptOrdersEnabled'
       >
     >
   ) => {
@@ -56,8 +55,7 @@ export default function DriverSettingsPage() {
     try {
       const response = await api.put<DriverPresenceSettingsDto>('/presence/settings', {
         isAutoStatusEnabled: patch.isAutoStatusEnabled,
-        isAutoAcceptOrdersEnabled: patch.isAutoAcceptOrdersEnabled,
-        isRouteOptimizationEnabled: patch.isRouteOptimizationEnabled
+        isAutoAcceptOrdersEnabled: patch.isAutoAcceptOrdersEnabled
       });
       if (requestId === updateRequestIdRef.current) {
         setState(response.data);
@@ -107,13 +105,6 @@ export default function DriverSettingsPage() {
             checked={state.isAutoAcceptOrdersEnabled}
             onChange={(next) => void patchSettings({ isAutoAcceptOrdersEnabled: next })}
             description="Якщо увімкнено, замовлення на сторінці «Замовлення» приймаються без додаткового підтвердження."
-          />
-          <FormSwitch
-            layout="stacked"
-            label="Оптимізація маршруту"
-            checked={state.isRouteOptimizationEnabled}
-            onChange={(next) => void patchSettings({ isRouteOptimizationEnabled: next })}
-            description="Експериментальна опція для покращення відображення маршрутів на картах."
           />
         </div>
       )}
