@@ -61,11 +61,14 @@ export default function RideRouteMap({ data, className = '' }: RideRouteMapProps
     data.toLatitude != null &&
     data.toLongitude != null;
 
-  const actualLine = useMemo<[number, number][]>(() => [], []);
+  const actualLine = useMemo<[number, number][]>(
+    () => data.routePoints.map((point) => [point.latitude, point.longitude]),
+    [data.routePoints]
+  );
 
   useEffect(() => {
     if (!hasCoords || tab !== 'planned') return;
-    let cancelled = false;
+    let isCancelled = false;
     setPlannedLoading(true);
     void fetchDrivingRouteGeometry(
       data.fromLongitude!,
@@ -73,19 +76,19 @@ export default function RideRouteMap({ data, className = '' }: RideRouteMapProps
       data.toLongitude!,
       data.toLatitude!
     )
-      .then((line) => {
-        if (!cancelled) setPlannedLine(line);
+      .then((routeGeometry) => {
+        if (!isCancelled) setPlannedLine(routeGeometry);
       })
       .finally(() => {
-        if (!cancelled) setPlannedLoading(false);
+        if (!isCancelled) setPlannedLoading(false);
       });
     return () => {
-      cancelled = true;
+      isCancelled = true;
     };
   }, [tab, hasCoords, data.fromLatitude, data.fromLongitude, data.toLatitude, data.toLongitude]);
 
   const displayLine = tab === 'planned' ? plannedLine : actualLine;
-  const fallbackLine =
+  const plannedRouteFallbackLine =
     hasCoords && displayLine == null
       ? ([
           [data.fromLatitude!, data.fromLongitude!],
@@ -93,7 +96,7 @@ export default function RideRouteMap({ data, className = '' }: RideRouteMapProps
         ] as [number, number][])
       : [];
 
-  const positions = (displayLine?.length ? displayLine : fallbackLine) as [number, number][];
+  const positions = (displayLine?.length ? displayLine : plannedRouteFallbackLine) as [number, number][];
   const center: [number, number] = positions[0] ?? [49.8397, 24.0297];
 
   const tabClass = (active: boolean) =>

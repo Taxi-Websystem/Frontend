@@ -1,6 +1,7 @@
 import { Loader2, Settings } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import FormSwitch from '../../components/FormSwitch';
+import { PAGE_CARD_CLASS } from '../../styles/pageClasses';
 import { api, getApiErrorMessage } from '../../api/axios';
 import type { UserStatus } from '../../utils/userStatus';
 
@@ -12,31 +13,28 @@ interface DriverPresenceSettingsDto {
   profileId: number;
 }
 
-const pageCardClass =
-  'rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-xl sm:p-8';
-
 export default function DriverSettingsPage() {
   const [state, setState] = useState<DriverPresenceSettingsDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const updateRequestIdRef = useRef(0);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const response = await api.get<DriverPresenceSettingsDto>('/presence/settings');
-        setState(response.data);
-      } catch (err) {
-        setError(getApiErrorMessage(err, 'Не вдалося завантажити налаштування.'));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void load();
+  const loadSettings = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const { data } = await api.get<DriverPresenceSettingsDto>('/presence/settings');
+      setState(data);
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Не вдалося завантажити налаштування.'));
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
 
   const patchSettings = async (
     patch: Partial<
@@ -53,12 +51,12 @@ export default function DriverSettingsPage() {
     setState({ ...state, ...patch });
     setError('');
     try {
-      const response = await api.put<DriverPresenceSettingsDto>('/presence/settings', {
+      const { data } = await api.put<DriverPresenceSettingsDto>('/presence/settings', {
         isAutoStatusEnabled: patch.isAutoStatusEnabled,
         isAutoAcceptOrdersEnabled: patch.isAutoAcceptOrdersEnabled
       });
       if (requestId === updateRequestIdRef.current) {
-        setState(response.data);
+        setState(data);
       }
     } catch (err) {
       if (requestId === updateRequestIdRef.current) {
@@ -68,8 +66,12 @@ export default function DriverSettingsPage() {
     }
   };
 
+  const autoStatusDescription = state?.isAutoStatusEnabled
+    ? 'Автостатус увімкнено. Статус присутності на сторінці «Зміна» визначається автоматично.'
+    : 'Автостатус вимкнено. Статус присутності на сторінці «Зміна» визначається вручну.';
+
   return (
-    <section className={pageCardClass}>
+    <section className={PAGE_CARD_CLASS}>
       <div className="mb-6 flex items-start gap-3">
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#EAB308]/15 text-[#EAB308]">
           <Settings className="h-7 w-7" strokeWidth={2} />
@@ -93,11 +95,7 @@ export default function DriverSettingsPage() {
             label="Автоматичне визначення присутності"
             checked={state.isAutoStatusEnabled}
             onChange={(next) => void patchSettings({ isAutoStatusEnabled: next })}
-            description={
-              state.isAutoStatusEnabled
-                ? 'Автостатус увімкнено. Статус присутності на сторінці «Зміна» визначається автоматично.'
-                : 'Автостатус вимкнено. Статус присутності на сторінці «Зміна» визначається вручну.'
-            }
+            description={autoStatusDescription}
           />
           <FormSwitch
             layout="stacked"

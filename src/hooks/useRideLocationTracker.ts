@@ -19,13 +19,14 @@ export function useRideLocationTracker(rideId: number | null, enabled: boolean) 
       return;
     }
 
-    const flush = async () => {
+    const flushRoutePoints = async () => {
       if (bufferRef.current.length === 0) return;
-      const batch = bufferRef.current.splice(0, bufferRef.current.length);
+
+      const pendingPoints = bufferRef.current.splice(0, bufferRef.current.length);
       try {
-        await api.post(`/driver/rides/${rideId}/route-points`, { points: batch });
+        await api.post(`/driver/rides/${rideId}/route-points`, { points: pendingPoints });
       } catch {
-        bufferRef.current.unshift(...batch);
+        bufferRef.current.unshift(...pendingPoints);
       }
     };
 
@@ -41,7 +42,7 @@ export function useRideLocationTracker(rideId: number | null, enabled: boolean) 
       const now = Date.now();
       if (now - lastSendRef.current >= SEND_INTERVAL_MS) {
         lastSendRef.current = now;
-        void flush();
+        void flushRoutePoints();
       }
     };
 
@@ -51,7 +52,7 @@ export function useRideLocationTracker(rideId: number | null, enabled: boolean) 
       timeout: 15000
     });
 
-    const intervalId = window.setInterval(() => void flush(), SEND_INTERVAL_MS);
+    const intervalId = window.setInterval(() => void flushRoutePoints(), SEND_INTERVAL_MS);
 
     return () => {
       if (watchIdRef.current != null) {
@@ -59,7 +60,7 @@ export function useRideLocationTracker(rideId: number | null, enabled: boolean) 
         watchIdRef.current = null;
       }
       window.clearInterval(intervalId);
-      void flush();
+      void flushRoutePoints();
     };
   }, [enabled, rideId]);
 }

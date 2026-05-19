@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 
-/** Секунди до deadline (UTC ms); оновлюється щосекунди. */
 export function useCountdownSeconds(deadlineMs: number | null): number {
   const [remaining, setRemaining] = useState(() => computeRemaining(deadlineMs));
 

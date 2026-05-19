@@ -19,6 +19,8 @@ const COMMON_CAR_COLORS_UA = [
   'Біло-Чорний'
 ];
 
+const CAR_COLOR_VARIANTS = buildColorVariants();
+
 function buildColorVariants(): string[] {
   const variants = COMMON_CAR_COLORS_UA.flatMap((color) => {
     if (color.includes('-')) return [color];
@@ -26,23 +28,28 @@ function buildColorVariants(): string[] {
     return [color, `Темно-${color}`, `Світло-${color}`];
   });
 
-  return variants.filter((color, index, arr) => arr.indexOf(color) === index);
+  return variants.filter((color, index, allColors) => allColors.indexOf(color) === index);
+}
+
+function matchesColorQuery(color: string, normalizedQuery: string, matchMode: 'starts' | 'contains'): boolean {
+  const normalizedColor = color.toLocaleLowerCase('uk-UA');
+  return matchMode === 'starts'
+    ? normalizedColor.startsWith(normalizedQuery)
+    : normalizedColor.includes(normalizedQuery);
 }
 
 export async function searchCarColorsUa(query: string): Promise<string[]> {
-  const trimmed = query.trim().toLocaleLowerCase('uk-UA');
-  if (trimmed.length < 2) return [];
+  const normalizedQuery = query.trim().toLocaleLowerCase('uk-UA');
+  if (normalizedQuery.length < 2) return [];
 
-  const allColors = buildColorVariants();
-
-  const starts = allColors.filter((color) =>
-    color.toLocaleLowerCase('uk-UA').startsWith(trimmed)
+  const startsWithQuery = CAR_COLOR_VARIANTS.filter((color) =>
+    matchesColorQuery(color, normalizedQuery, 'starts')
   );
 
-  const contains = allColors.filter(
+  const containsQuery = CAR_COLOR_VARIANTS.filter(
     (color) =>
-      !starts.includes(color) && color.toLocaleLowerCase('uk-UA').includes(trimmed)
+      !startsWithQuery.includes(color) && matchesColorQuery(color, normalizedQuery, 'contains')
   );
 
-  return [...starts, ...contains].slice(0, 12);
+  return [...startsWithQuery, ...containsQuery].slice(0, 12);
 }

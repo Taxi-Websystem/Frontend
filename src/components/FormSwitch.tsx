@@ -7,6 +7,32 @@ interface FormSwitchProps {
   layout?: 'inline' | 'stacked';
 }
 
+interface SwitchToggleProps {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (next: boolean) => void;
+}
+
+function SwitchToggle({ checked, disabled, onChange }: SwitchToggleProps) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-300 ease-in-out disabled:cursor-not-allowed ${
+        checked ? 'bg-[#EAB308]' : 'bg-slate-600'
+      }`}
+      aria-pressed={checked}
+    >
+      <span
+        className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-300 ease-in-out ${
+          checked ? 'translate-x-5' : 'translate-x-0'
+        }`}
+      />
+    </button>
+  );
+}
+
 export default function FormSwitch({
   label,
   checked,
@@ -22,21 +48,7 @@ export default function FormSwitch({
       }`}
     >
       <span className="text-white">{checked ? 'Увімкнено' : 'Вимкнено'}</span>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => onChange(!checked)}
-        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-300 ease-in-out disabled:cursor-not-allowed ${
-          checked ? 'bg-[#EAB308]' : 'bg-slate-600'
-        }`}
-        aria-pressed={checked}
-      >
-        <span
-          className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-300 ease-in-out ${
-            checked ? 'translate-x-5' : 'translate-x-0'
-          }`}
-        />
-      </button>
+      <SwitchToggle checked={checked} disabled={disabled} onChange={onChange} />
     </div>
   );
 
@@ -58,21 +70,7 @@ export default function FormSwitch({
         }`}
       >
         <span className="text-white">{label}</span>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => onChange(!checked)}
-          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-300 ease-in-out disabled:cursor-not-allowed ${
-            checked ? 'bg-[#EAB308]' : 'bg-slate-600'
-          }`}
-          aria-pressed={checked}
-        >
-          <span
-            className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-300 ease-in-out ${
-              checked ? 'translate-x-5' : 'translate-x-0'
-            }`}
-          />
-        </button>
+        <SwitchToggle checked={checked} disabled={disabled} onChange={onChange} />
       </label>
       {description ? <p className="text-xs text-slate-400">{description}</p> : null}
     </div>

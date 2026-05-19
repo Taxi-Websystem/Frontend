@@ -8,27 +8,30 @@ import {
 
 export { FEE_PERCENT_DECIMAL_REGEX, NON_NEGATIVE_DECIMAL_REGEX };
 
-/** Як sanitizeRatingInput — фільтр символів, проміжний ввід, опційний max. */
+function exceedsMaxDecimalValue(value: string, maxValue: number): boolean {
+  const normalized = value.replace(',', '.');
+  const numericPart = normalized.endsWith('.') ? normalized.slice(0, -1) : normalized;
+  if (numericPart.length === 0) return false;
+
+  const numericValue = Number(numericPart);
+  return !Number.isNaN(numericValue) && numericValue > maxValue;
+}
+
 export function sanitizeDecimalInput(
-  nextValue: string,
-  currentValue: string,
+  nextInput: string,
+  previousInput: string,
   maxValue?: number
 ): string {
-  const sanitized = nextValue
+  const sanitized = nextInput
     .replace(DECIMAL_ALLOWED_CHARS_REGEX, '')
     .replace(RATING_DUPLICATED_SEPARATOR_REGEX, '$1$2');
 
   if (!sanitized) return '';
 
-  if (!DECIMAL_EDITABLE_REGEX.test(sanitized)) return currentValue;
+  if (!DECIMAL_EDITABLE_REGEX.test(sanitized)) return previousInput;
 
-  if (maxValue != null) {
-    const normalized = sanitized.replace(',', '.');
-    const forNumber = normalized.endsWith('.') ? normalized.slice(0, -1) : normalized;
-    if (forNumber.length > 0) {
-      const numeric = Number(forNumber);
-      if (!Number.isNaN(numeric) && numeric > maxValue) return currentValue;
-    }
+  if (maxValue != null && exceedsMaxDecimalValue(sanitized, maxValue)) {
+    return previousInput;
   }
 
   return sanitized;

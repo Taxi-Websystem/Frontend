@@ -1,5 +1,4 @@
-import axios from 'axios';
-import { getApiErrorMessage } from '../api/axios';
+import { getApiErrorMessage, getApiErrorPayload } from '../api/errors';
 
 export const PHONE_DUPLICATE_MESSAGE = 'Номер телефону вже зареєстровано в системі.';
 
@@ -9,14 +8,9 @@ export interface SubmitFieldErrors {
 }
 
 export function getSubmitFieldErrors(err: unknown, fallback: string): SubmitFieldErrors {
-  if (axios.isAxiosError(err) && err.response?.data && typeof err.response.data === 'object') {
-    const data = err.response.data as { message?: unknown; code?: unknown };
-    const message =
-      typeof data.message === 'string' && data.message.trim() ? data.message.trim() : fallback;
-
-    if (data.code === 'PHONE_TAKEN') {
-      return { phone: message };
-    }
+  const errorPayload = getApiErrorPayload(err);
+  if (errorPayload?.code === 'PHONE_TAKEN') {
+    return { phone: errorPayload.message ?? PHONE_DUPLICATE_MESSAGE };
   }
 
   return { general: getApiErrorMessage(err, fallback) };

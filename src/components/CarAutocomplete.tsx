@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useOnClickOutside } from '../hooks/useOnClickOutside';
 import { Loader2 } from 'lucide-react';
 
 interface CarAutocompleteProps {
@@ -52,13 +53,16 @@ export default function CarAutocomplete({
     const timer = window.setTimeout(() => {
       setLoading(true);
       void search(trimmed)
-        .then((rows) => {
-          const normalizedRows = rows
-            .map((row) => normalize(row).trim())
+        .then((searchResults) => {
+          const normalizedOptions = searchResults
+            .map((option) => normalize(option).trim())
             .filter(Boolean)
-            .filter((row, index, arr) => arr.findIndex((x) => x.toLowerCase() === row.toLowerCase()) === index);
-          setOptions(normalizedRows);
-          setOpen(normalizedRows.length > 0);
+            .filter(
+              (option, index, allOptions) =>
+                allOptions.findIndex((candidate) => candidate.toLowerCase() === option.toLowerCase()) === index
+            );
+          setOptions(normalizedOptions);
+          setOpen(normalizedOptions.length > 0);
         })
         .finally(() => setLoading(false));
     }, 300);
@@ -66,15 +70,8 @@ export default function CarAutocomplete({
     return () => window.clearTimeout(timer);
   }, [query, value, pickedValue, search, disabled]);
 
-  useEffect(() => {
-    const onDocClick = (event: MouseEvent) => {
-      if (!wrapRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
-  }, []);
+  const closeDropdown = useCallback(() => setOpen(false), []);
+  useOnClickOutside(wrapRef, closeDropdown);
 
   const pick = (option: string) => {
     const normalized = normalize(option).trim();
@@ -123,16 +120,16 @@ export default function CarAutocomplete({
             role="listbox"
             className="absolute z-[100] mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-white/10 bg-[#0F172A] py-1 shadow-2xl"
           >
-            {options.map((row, index) => (
-              <li key={`${row}-${index}`}>
+            {options.map((option, index) => (
+              <li key={`${option}-${index}`}>
                 <button
                   type="button"
                   role="option"
                   className="w-full px-4 py-2 text-left text-sm text-slate-200 transition hover:bg-white/10 hover:text-[#EAB308]"
                   onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => pick(row)}
+                  onClick={() => pick(option)}
                 >
-                  {row}
+                  {option}
                 </button>
               </li>
             ))}

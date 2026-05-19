@@ -1,20 +1,33 @@
 import type { ReactNode } from 'react';
 import ModalPortal from './ModalPortal';
 
+type ConfirmTone = 'danger' | 'primary' | 'online';
+type CancelTone = 'default' | 'online';
+
 interface ConfirmDialogProps {
   open: boolean;
   title?: string;
   message: string;
   confirmText?: string;
   cancelText?: string;
-  /** danger — як видалення; primary — жовта кнопка; online — зелений outline */
-  confirmTone?: 'danger' | 'primary' | 'online';
-  /** online — зелене обведення як статус «Онлайн» */
-  cancelTone?: 'default' | 'online';
+  confirmTone?: ConfirmTone;
+  cancelTone?: CancelTone;
   children?: ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }
+
+const CONFIRM_BUTTON_CLASS: Record<ConfirmTone, string> = {
+  primary:
+    'manager-accent-glow manager-primary-btn rounded-full bg-[#EAB308] px-4 py-2 text-sm font-semibold text-[#0F172A]',
+  online: 'manager-action-btn--online px-4 py-2 text-sm font-semibold',
+  danger: 'manager-icon-btn manager-icon-btn--danger rounded-full px-4 py-2 text-sm font-semibold text-slate-200'
+};
+
+const CANCEL_BUTTON_CLASS: Record<CancelTone, string> = {
+  default: 'manager-icon-btn rounded-full px-4 py-2 text-sm font-semibold text-slate-200',
+  online: 'manager-action-btn--online px-4 py-2 text-sm font-semibold'
+};
 
 export default function ConfirmDialog({
   open,
@@ -28,16 +41,6 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel
 }: ConfirmDialogProps) {
-  const confirmClassName =
-    confirmTone === 'primary'
-      ? 'manager-accent-glow manager-primary-btn rounded-full bg-[#EAB308] px-4 py-2 text-sm font-semibold text-[#0F172A]'
-      : confirmTone === 'online'
-        ? 'manager-action-btn--online px-4 py-2 text-sm font-semibold'
-        : 'manager-icon-btn manager-icon-btn--danger rounded-full px-4 py-2 text-sm font-semibold text-slate-200';
-  const cancelClassName =
-    cancelTone === 'online'
-      ? 'manager-action-btn--online px-4 py-2 text-sm font-semibold'
-      : 'manager-icon-btn rounded-full px-4 py-2 text-sm font-semibold text-slate-200';
   if (!open) return null;
 
   return (
@@ -48,10 +51,10 @@ export default function ConfirmDialog({
           <p className="mt-2 text-sm text-slate-300">{message}</p>
           {children ? <div className="mt-4">{children}</div> : null}
           <div className="mt-6 flex justify-end gap-2">
-            <button type="button" onClick={onCancel} className={cancelClassName}>
+            <button type="button" onClick={onCancel} className={CANCEL_BUTTON_CLASS[cancelTone]}>
               {cancelText}
             </button>
-            <button type="button" onClick={onConfirm} className={confirmClassName}>
+            <button type="button" onClick={onConfirm} className={CONFIRM_BUTTON_CLASS[confirmTone]}>
               {confirmText}
             </button>
           </div>

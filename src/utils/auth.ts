@@ -23,11 +23,14 @@ export function getToken(): string | null {
   return localStorage.getItem('token');
 }
 
-export function getCurrentRole(): AppRole | null {
+function getTokenPayload(): Record<string, string> | null {
   const token = getToken();
   if (!token) return null;
+  return decodeJwtPayload(token);
+}
 
-  const payload = decodeJwtPayload(token);
+export function getCurrentRole(): AppRole | null {
+  const payload = getTokenPayload();
   if (!payload) return null;
 
   const role = (payload[ROLE_CLAIM] ?? payload.role) as AppRole | undefined;
@@ -35,20 +38,21 @@ export function getCurrentRole(): AppRole | null {
 }
 
 export function getCurrentUserId(): number | null {
-  const token = getToken();
-  if (!token) return null;
-
-  const payload = decodeJwtPayload(token);
+  const payload = getTokenPayload();
   if (!payload) return null;
 
   const userId = payload[NAME_ID_CLAIM] ?? payload.sub;
   if (!userId) return null;
 
-  const parsed = Number(userId);
-  return Number.isNaN(parsed) ? null : parsed;
+  const parsedUserId = Number(userId);
+  return Number.isNaN(parsedUserId) ? null : parsedUserId;
 }
 
 export function clearAuth(): void {
   localStorage.removeItem('token');
   localStorage.removeItem('role');
+}
+
+export function getPostLoginPath(role: AppRole | string): string {
+  return role === 'Manager' || role === 'SuperAdmin' ? '/manager/whitelist' : '/driver/dashboard';
 }

@@ -1,61 +1,35 @@
 import { Navigate, Outlet } from 'react-router-dom';
-import { JWT_BASE64URL_DASH_REGEX, JWT_BASE64URL_UNDERSCORE_REGEX } from '../utils/regex';
-
-type AllowedRole = 'Manager' | 'Driver' | 'SuperAdmin';
+import { clearAuth, getCurrentRole, getToken, type AppRole } from '../utils/auth';
 
 interface ProtectedRouteProps {
-  requiredRole: AllowedRole;
+  requiredRole: AppRole;
 }
 
-function decodeJwtPayload(token: string): Record<string, string> | null {
-  try {
-    const payloadBase64 = token.split('.')[1];
-    const decoded = atob(
-      payloadBase64
-        .replace(JWT_BASE64URL_DASH_REGEX, '+')
-        .replace(JWT_BASE64URL_UNDERSCORE_REGEX, '/')
-    );
-    return JSON.parse(decoded);
-  } catch {
-    return null;
-  }
-}
-
-const ROLE_CLAIM = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
-
-function getRoleFromToken(): string | null {
-  const token = localStorage.getItem('token');
-  if (!token) return null;
-  const payload = decodeJwtPayload(token);
-  if (!payload) return null;
-  return payload[ROLE_CLAIM] ?? payload['role'] ?? null;
-}
-
-function getDashboardForRole(role: string): string {
+function getDashboardPathForRole(role: AppRole): string {
   return role === 'Driver' ? '/driver/dashboard' : '/manager/dashboard';
 }
 
+function hasRequiredRole(currentRole: AppRole, requiredRole: AppRole): boolean {
+  return (
+    currentRole === requiredRole ||
+    (requiredRole === 'Manager' && currentRole === 'SuperAdmin')
+  );
+}
+
 export default function ProtectedRoute({ requiredRole }: ProtectedRouteProps) {
-  const token = localStorage.getItem('token');
-
-  if (!token) {
+  if (!getToken()) {
     return <Navigate to="/login" replace />;
   }
 
-  const role = getRoleFromToken();
+  const currentRole = getCurrentRole();
 
-  if (!role) {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
+  if (!currentRole) {
+    clearAuth();
     return <Navigate to="/login" replace />;
   }
 
-  const hasAccess =
-    role === requiredRole ||
-    (requiredRole === 'Manager' && role === 'SuperAdmin');
-
-  if (!hasAccess) {
-    return <Navigate to={getDashboardForRole(role)} replace />;
+  if (!hasRequiredRole(currentRole, requiredRole)) {
+    return <Navigate to={getDashboardPathForRole(currentRole)} replace />;
   }
 
   return <Outlet />;

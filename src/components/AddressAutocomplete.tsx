@@ -1,5 +1,6 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useOnClickOutside } from '../hooks/useOnClickOutside';
 import { searchLvivStreets, type AddressSelection } from '../utils/geo';
 
 interface AddressAutocompleteProps {
@@ -10,6 +11,14 @@ interface AddressAutocompleteProps {
   onChange: (next: AddressSelection | null) => void;
   disabled?: boolean;
   placeholder?: string;
+}
+
+function hasResolvedCoordinates(latitude: number | null, longitude: number | null): boolean {
+  return latitude != null && longitude != null;
+}
+
+function isSelectionUnchanged(query: string, value: string, latitude: number | null, longitude: number | null): boolean {
+  return query.trim() === value.trim() && hasResolvedCoordinates(latitude, longitude);
 }
 
 export default function AddressAutocomplete({
@@ -35,22 +44,22 @@ export default function AddressAutocomplete({
   useEffect(() => {
     if (disabled) return;
 
-    const trimmed = query.trim();
-    if (trimmed.length < 2) {
+    const trimmedQuery = query.trim();
+    if (trimmedQuery.length < 2) {
       setOptions([]);
       return;
     }
 
-    if (trimmed === value.trim() && latitude != null && longitude != null) {
+    if (isSelectionUnchanged(trimmedQuery, value, latitude, longitude)) {
       return;
     }
 
     const timer = window.setTimeout(() => {
       setLoading(true);
-      void searchLvivStreets(trimmed)
-        .then((rows) => {
-          setOptions(rows);
-          setOpen(rows.length > 0);
+      void searchLvivStreets(trimmedQuery)
+        .then((searchResults) => {
+          setOptions(searchResults);
+          setOpen(searchResults.length > 0);
         })
         .finally(() => setLoading(false));
     }, 300);
@@ -58,19 +67,12 @@ export default function AddressAutocomplete({
     return () => window.clearTimeout(timer);
   }, [query, value, latitude, longitude, disabled]);
 
-  useEffect(() => {
-    const onDocClick = (event: MouseEvent) => {
-      if (!wrapRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
-  }, []);
+  const closeDropdown = useCallback(() => setOpen(false), []);
+  useOnClickOutside(wrapRef, closeDropdown);
 
-  const pick = (row: AddressSelection) => {
-    setQuery(row.displayName);
-    onChange(row);
+  const selectAddress = (address: AddressSelection) => {
+    setQuery(address.displayName);
+    onChange(address);
     setOpen(false);
   };
 
@@ -109,16 +111,16 @@ export default function AddressAutocomplete({
             role="listbox"
             className="absolute z-[100] mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-white/10 bg-[#0F172A] py-1 shadow-2xl"
           >
-            {options.map((row, index) => (
-              <li key={`${row.displayName}-${index}`}>
+            {options.map((address, index) => (
+              <li key={`${address.displayName}-${index}`}>
                 <button
                   type="button"
                   role="option"
                   className="w-full px-4 py-2 text-left text-sm text-slate-200 transition hover:bg-white/10 hover:text-[#EAB308]"
                   onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => pick(row)}
+                  onClick={() => selectAddress(address)}
                 >
-                  {row.displayName}
+                  {address.displayName}
                 </button>
               </li>
             ))}

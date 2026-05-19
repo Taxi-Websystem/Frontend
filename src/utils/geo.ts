@@ -112,18 +112,18 @@ function addressOptionKey(row: AddressSelection): string {
 }
 
 /** Залишає перший варіант для однакового підпису (різні точки Nominatim → один рядок). */
-function dedupeAddressSelections(rows: AddressSelection[]): AddressSelection[] {
-  const seen = new Set<string>();
-  const unique: AddressSelection[] = [];
+function dedupeAddressSelections(selections: AddressSelection[]): AddressSelection[] {
+  const seenKeys = new Set<string>();
+  const uniqueSelections: AddressSelection[] = [];
 
-  for (const row of rows) {
-    const key = addressOptionKey(row);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    unique.push(row);
+  for (const selection of selections) {
+    const key = addressOptionKey(selection);
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    uniqueSelections.push(selection);
   }
 
-  return unique;
+  return uniqueSelections;
 }
 
 export async function searchLvivStreets(query: string): Promise<AddressSelection[]> {
@@ -143,16 +143,16 @@ export async function searchLvivStreets(query: string): Promise<AddressSelection
   });
   if (!response.ok) return [];
 
-  const data = (await response.json()) as NominatimResult[];
-  const mapped = data
-    .map((row) => ({
-      displayName: formatCompactAddress(row),
-      latitude: Number(row.lat),
-      longitude: Number(row.lon)
+  const searchResults = (await response.json()) as NominatimResult[];
+  const mappedSelections = searchResults
+    .map((nominatimResult) => ({
+      displayName: formatCompactAddress(nominatimResult),
+      latitude: Number(nominatimResult.lat),
+      longitude: Number(nominatimResult.lon)
     }))
-    .filter((row) => Number.isFinite(row.latitude) && Number.isFinite(row.longitude));
+    .filter((selection) => Number.isFinite(selection.latitude) && Number.isFinite(selection.longitude));
 
-  return dedupeAddressSelections(mapped);
+  return dedupeAddressSelections(mappedSelections);
 }
 
 export async function fetchDrivingDistanceKm(
@@ -165,8 +165,8 @@ export async function fetchDrivingDistanceKm(
   const response = await fetch(`/osrm/route/v1/driving/${path}?overview=false`);
   if (!response.ok) return null;
 
-  const data = (await response.json()) as { routes?: { distance?: number }[] };
-  const meters = data.routes?.[0]?.distance;
+  const routeResponse = (await response.json()) as { routes?: { distance?: number }[] };
+  const meters = routeResponse.routes?.[0]?.distance;
   if (meters == null || !Number.isFinite(meters)) return null;
 
   return Math.round((meters / 1000) * 100) / 100;
@@ -183,11 +183,11 @@ export async function fetchDrivingRouteGeometry(
   const response = await fetch(`/osrm/route/v1/driving/${path}?overview=full&geometries=geojson`);
   if (!response.ok) return null;
 
-  const data = (await response.json()) as {
+  const routeResponse = (await response.json()) as {
     routes?: { geometry?: { coordinates?: [number, number][] } }[];
   };
-  const coords = data.routes?.[0]?.geometry?.coordinates;
-  if (!coords?.length) return null;
+  const routeCoordinates = routeResponse.routes?.[0]?.geometry?.coordinates;
+  if (!routeCoordinates?.length) return null;
 
-  return coords.map(([lng, lat]) => [lat, lng] as [number, number]);
+  return routeCoordinates.map(([lng, lat]) => [lat, lng] as [number, number]);
 }

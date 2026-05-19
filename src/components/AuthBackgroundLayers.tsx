@@ -1,6 +1,3 @@
-/**
- * Статичний фон (лише CSS-градієнти, без окремих «плям»/blobs у DOM).
- */
 export default function AuthBackgroundLayers() {
   return (
     <div
