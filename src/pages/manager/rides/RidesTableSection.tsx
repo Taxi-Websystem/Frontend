@@ -51,7 +51,7 @@ export function RidesTableSection({ items, onViewMap, onEdit, onDelete }: RidesT
                 </td>
                 <td className={managerTablePad}>
                   {driverLabel === '—' ? (
-                    '—'
+                    <span className="text-[#EAB308]">—</span>
                   ) : (
                     <Link
                       to={ride.driverId ? `/manager/analytics/${ride.driverId}` : '#'}
