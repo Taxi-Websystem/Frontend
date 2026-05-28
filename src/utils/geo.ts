@@ -21,7 +21,6 @@ interface NominatimResult {
   address?: NominatimAddress;
 }
 
-/** Межі слова для кирилиці (JS \\b працює лише з [A-Za-z0-9_]). */
 const WB_START = '(?<!\\p{L})';
 const WB_END = '(?!\\p{L})';
 
@@ -37,14 +36,12 @@ function replaceStreetWord(text: string, word: string, replacement: string): str
   return text.replace(new RegExp(`${WB_START}${word}${WB_END}`, 'giu'), replacement);
 }
 
-/** «Зелена вулиця» → «вулиця Зелена» (далі скоротиться до «вул. Зелена»). */
 function moveStreetTypeBeforeName(value: string): string {
   const match = value.trim().match(STREET_TYPE_AFTER_NAME);
   if (!match) return value.trim();
   return `${match[2]} ${match[1]}`.trim();
 }
 
-/** Скорочує тип вулиці: вулиця → вул., проспект → пр., площа → пл. */
 export function abbreviateStreetTypes(value: string): string {
   let text = moveStreetTypeBeforeName(value);
   text = replaceStreetWord(text, 'проспект', 'пр.');
@@ -86,7 +83,6 @@ export function compactAddressLabel(full: string): string {
   return city && city !== streetLine ? `${streetLine}, ${city}` : streetLine;
 }
 
-/** Короткий підпис для автозаповнення: вул./пр./пл. + назва, номер, місто. */
 export function formatCompactAddress(row: NominatimResult): string {
   const addr = row.address;
   if (addr) {
@@ -111,7 +107,6 @@ function addressOptionKey(row: AddressSelection): string {
   return row.displayName.toLocaleLowerCase('uk').replace(/\s+/g, ' ').trim();
 }
 
-/** Залишає перший варіант для однакового підпису (різні точки Nominatim → один рядок). */
 function dedupeAddressSelections(selections: AddressSelection[]): AddressSelection[] {
   const seenKeys = new Set<string>();
   const uniqueSelections: AddressSelection[] = [];
@@ -172,7 +167,6 @@ export async function fetchDrivingDistanceKm(
   return Math.round((meters / 1000) * 100) / 100;
 }
 
-/** OSRM geometry for planned route map (lng,lat pairs). */
 export async function fetchDrivingRouteGeometry(
   fromLng: number,
   fromLat: number,
