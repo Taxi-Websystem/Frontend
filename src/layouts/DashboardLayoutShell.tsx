@@ -60,7 +60,7 @@ export default function DashboardLayoutShell({
               ))}
             </div>
 
-            <div className="mt-4 flex shrink-0 flex-col gap-3 border-t border-white/10 pt-4">
+            <div className="mt-4 flex shrink-0 flex-col gap-3 pt-2">
               <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-slate-300 backdrop-blur-sm">
                 Роль: <span className="font-semibold text-[#EAB308]">{roleLabel}</span>
               </div>
