@@ -4,7 +4,7 @@ interface FormSwitchProps {
   onChange: (next: boolean) => void;
   disabled?: boolean;
   description?: string;
-  layout?: 'inline' | 'stacked';
+  layout?: 'inline' | 'stacked' | 'embedded';
 }
 
 interface SwitchToggleProps {
@@ -59,6 +59,16 @@ export default function FormSwitch({
         {description ? <p className="mt-1 text-xs text-slate-400">{description}</p> : null}
         <div className="mt-4">{toggleRow}</div>
       </div>
+    );
+  }
+
+  if (layout === 'embedded') {
+    return (
+      <>
+        <h3 className="text-sm font-semibold text-white">{label}</h3>
+        {description ? <p className="mt-1 text-xs text-slate-400">{description}</p> : null}
+        <div className="mt-4">{toggleRow}</div>
+      </>
     );
   }
 

@@ -68,7 +68,7 @@ export function PersonalInfoSettingsSection() {
   };
 
   return (
-    <div className={`mb-6 ${ORDER_CARD_CLASS}`}>
+    <div className={ORDER_CARD_CLASS}>
       <h3 className="text-sm font-semibold text-white">Особиста інформація</h3>
       <p className="mt-1 text-xs text-slate-400">Ім&apos;я та дані про автомобіль.</p>
 

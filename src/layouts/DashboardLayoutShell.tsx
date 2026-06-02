@@ -29,11 +29,11 @@ export default function DashboardLayoutShell({
   const logout = useLogout();
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[#0F172A] text-slate-100">
+    <div className="relative min-h-screen bg-[#0F172A] text-slate-100">
       <AuthBackgroundLayers />
-      <div className="relative z-[1] flex min-h-0 flex-1 flex-col lg:flex-row">
-        <aside className="flex w-full shrink-0 flex-col border-b border-white/10 bg-white/5 p-4 backdrop-blur-xl sm:p-5 lg:w-72 lg:border-b-0 lg:border-r lg:rounded-none lg:border-white/10">
-          <div className="mb-6 flex items-center gap-3">
+      <div className="relative z-[1] flex flex-col lg:flex-row lg:items-start">
+        <aside className="flex w-full shrink-0 flex-col border-b border-white/10 bg-white/5 p-4 backdrop-blur-xl sm:p-5 lg:sticky lg:top-0 lg:h-screen lg:max-h-screen lg:w-72 lg:overflow-hidden lg:border-b-0 lg:border-r lg:border-white/10">
+          <div className="mb-6 flex shrink-0 items-center gap-3">
             <button
               type="button"
               onClick={() => void logout()}
@@ -50,25 +50,28 @@ export default function DashboardLayoutShell({
             </div>
           </div>
 
-          <nav className="flex flex-1 flex-col gap-1 lg:min-h-0">
-            {navLinks.map(({ to, label, icon: Icon }) => (
-              <NavLink key={to} to={to} className={navLinkClassName}>
-                <Icon size={18} strokeWidth={2} />
-                {label}
-              </NavLink>
-            ))}
-            <div className="mt-auto flex flex-col gap-3 pt-6">
+          <nav className="flex min-h-0 flex-1 flex-col gap-1 lg:overflow-hidden">
+            <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
+              {navLinks.map(({ to, label, icon: Icon }) => (
+                <NavLink key={to} to={to} className={navLinkClassName}>
+                  <Icon size={18} strokeWidth={2} />
+                  {label}
+                </NavLink>
+              ))}
+            </div>
+
+            <div className="mt-4 flex shrink-0 flex-col gap-3 border-t border-white/10 pt-4">
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-slate-300 backdrop-blur-sm">
+                Роль: <span className="font-semibold text-[#EAB308]">{roleLabel}</span>
+              </div>
               <button
                 type="button"
                 onClick={() => void logout()}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-300 transition hover:bg-red-500/10 hover:text-red-200"
+                className="sidebar-logout-btn flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-300 transition hover:bg-red-500/10 hover:text-red-200"
               >
                 <LogOut size={18} />
                 Вийти
               </button>
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-slate-300 backdrop-blur-sm">
-                Роль: <span className="font-semibold text-[#EAB308]">{roleLabel}</span>
-              </div>
             </div>
           </nav>
         </aside>

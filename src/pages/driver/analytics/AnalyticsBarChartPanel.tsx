@@ -1,6 +1,8 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { LucideIcon } from 'lucide-react';
 import { PAGE_CARD_CLASS } from '../../../styles/pageClasses';
+import { useTheme } from '../../../theme/ThemeProvider';
+import { getChartAxisLineColor } from '../../../theme/theme';
 import { AnalyticsTooltipCursorEcho } from '../AnalyticsTooltipCursorEcho';
 import { barActiveHighlight, barChartTooltipCursor, chartTooltipWrapperStyle, chartViewportClass } from './analyticsChartConfig';
 import { AnalyticsCardTooltip, ChartEmptyState, ChartPanelLoading, type ChartTooltipRow } from './analyticsChartUi';
@@ -40,6 +42,9 @@ export function AnalyticsBarChartPanel({
   formatTooltipValue,
   barName
 }: AnalyticsBarChartPanelProps) {
+  const { theme } = useTheme();
+  const axisLineColor = getChartAxisLineColor(theme);
+
   return (
     <section className={PAGE_CARD_CLASS}>
       <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-white">
@@ -56,7 +61,7 @@ export function AnalyticsBarChartPanel({
               <XAxis
                 dataKey="label"
                 tick={xAxisTickProps}
-                axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                axisLine={{ stroke: axisLineColor }}
                 angle={chartBucket === 'hour' ? -38 : 0}
                 textAnchor={chartBucket === 'hour' ? 'end' : 'middle'}
                 height={chartBucket === 'hour' ? 54 : 28}
@@ -66,7 +71,7 @@ export function AnalyticsBarChartPanel({
               <YAxis
                 allowDecimals={allowDecimals}
                 tick={{ fill: '#94a3b8', fontSize: 11 }}
-                axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                axisLine={{ stroke: axisLineColor }}
                 width={yAxisWidth}
                 tickFormatter={yAxisTickFormatter}
               />

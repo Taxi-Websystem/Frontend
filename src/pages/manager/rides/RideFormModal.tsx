@@ -65,11 +65,11 @@ export function RideFormModal({
                   onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value as RideStatus }))}
                   className="mt-2 field-select"
                 >
-                  <option value="Created">Створена</option>
-                  <option value="Accepted">Прийнята</option>
+                  <option value="Created">Створено</option>
+                  <option value="Accepted">Прийнято</option>
                   <option value="InRide">У дорозі</option>
-                  <option value="Completed">Завершена</option>
-                  <option value="Canceled">Скасована</option>
+                  <option value="Completed">Завершено</option>
+                  <option value="Canceled">Скасовано</option>
                 </select>
               </label>
               <label className={FIELD_LABEL_CLASS}>

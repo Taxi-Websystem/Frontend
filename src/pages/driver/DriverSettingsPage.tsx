@@ -1,8 +1,9 @@
 import { Loader2, Settings } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import FormSwitch from '../../components/FormSwitch';
-import { PAGE_CARD_CLASS } from '../../styles/pageClasses';
+import { PAGE_CARD_CLASS, SETTINGS_SECTIONS_STACK_CLASS } from '../../styles/pageClasses';
 import { PersonalInfoSettingsSection } from './settings/PersonalInfoSettingsSection';
+import { ThemeSettingsSection } from '../../theme/ThemeSettingsSection';
 import { api, getApiErrorMessage } from '../../api/axios';
 import type { UserStatus } from '../../utils/userStatus';
 
@@ -85,30 +86,34 @@ export default function DriverSettingsPage() {
 
       {error ? <div className="field-error-box mb-4">{error}</div> : null}
 
-      <PersonalInfoSettingsSection />
+      <div className={`mt-6 ${SETTINGS_SECTIONS_STACK_CLASS}`}>
+        <ThemeSettingsSection />
 
-      {loading || !state ? (
-        <div className="text-center text-slate-400">
-          <Loader2 className="mx-auto h-5 w-5 animate-spin" />
-        </div>
-      ) : (
-        <div className="space-y-6">
-          <FormSwitch
-            layout="stacked"
-            label="Автоматичне визначення присутності"
-            checked={state.isAutoStatusEnabled}
-            onChange={(next) => void patchSettings({ isAutoStatusEnabled: next })}
-            description={autoStatusDescription}
-          />
-          <FormSwitch
-            layout="stacked"
-            label="Автоматично підтверджувати замовлення"
-            checked={state.isAutoAcceptOrdersEnabled}
-            onChange={(next) => void patchSettings({ isAutoAcceptOrdersEnabled: next })}
-            description="Якщо увімкнено, замовлення на сторінці «Замовлення» приймаються без додаткового підтвердження."
-          />
-        </div>
-      )}
+        <PersonalInfoSettingsSection />
+
+        {loading || !state ? (
+          <div className="text-center text-slate-400">
+            <Loader2 className="mx-auto h-5 w-5 animate-spin" />
+          </div>
+        ) : (
+          <>
+            <FormSwitch
+              layout="stacked"
+              label="Автоматичне визначення присутності"
+              checked={state.isAutoStatusEnabled}
+              onChange={(next) => void patchSettings({ isAutoStatusEnabled: next })}
+              description={autoStatusDescription}
+            />
+            <FormSwitch
+              layout="stacked"
+              label="Автоматично підтверджувати замовлення"
+              checked={state.isAutoAcceptOrdersEnabled}
+              onChange={(next) => void patchSettings({ isAutoAcceptOrdersEnabled: next })}
+              description="Якщо увімкнено, замовлення на сторінці «Замовлення» приймаються без додаткового підтвердження."
+            />
+          </>
+        )}
+      </div>
     </section>
   );
 }

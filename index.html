@@ -5,7 +5,15 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TAXI 839</title>
-    <!-- Темний фон до завантаження JS/CSS — без білого спалаху при перезавантаженні -->
+    <!-- Фон до завантаження JS — без спалаху при перезавантаженні -->
+    <script>
+      (function () {
+        var theme = localStorage.getItem('theme') === 'light' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+        document.documentElement.style.backgroundColor = theme === 'light' ? '#e8edf4' : '#030712';
+      })();
+    </script>
     <style>
       html {
         background-color: #030712;
@@ -13,7 +21,7 @@
       }
       body {
         margin: 0;
-        background-color: #030712;
+        background-color: inherit;
       }
     </style>
   </head>

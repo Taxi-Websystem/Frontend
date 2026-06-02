@@ -1,6 +1,8 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { LineChart } from 'lucide-react';
 import { PAGE_CARD_CLASS } from '../../../styles/pageClasses';
+import { useTheme } from '../../../theme/ThemeProvider';
+import { getChartActiveDotFill, getChartAxisLineColor } from '../../../theme/theme';
 import { AnalyticsTooltipCursorEcho } from '../AnalyticsTooltipCursorEcho';
 import {
   areaChartTooltipCursor,
@@ -34,6 +36,9 @@ export function AnalyticsProfitChartPanel({
   profitChartHovered,
   onHoverChange
 }: AnalyticsProfitChartPanelProps) {
+  const { theme } = useTheme();
+  const axisLineColor = getChartAxisLineColor(theme);
+
   return (
     <section className={PAGE_CARD_CLASS}>
       <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-white">
@@ -60,7 +65,7 @@ export function AnalyticsProfitChartPanel({
               <XAxis
                 dataKey="label"
                 tick={xAxisTickProps}
-                axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                axisLine={{ stroke: axisLineColor }}
                 angle={chartBucket === 'hour' ? -38 : 0}
                 textAnchor={chartBucket === 'hour' ? 'end' : 'middle'}
                 height={chartBucket === 'hour' ? 54 : 28}
@@ -69,7 +74,7 @@ export function AnalyticsProfitChartPanel({
               />
               <YAxis
                 tick={{ fill: '#94a3b8', fontSize: 11 }}
-                axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                axisLine={{ stroke: axisLineColor }}
                 width={44}
               />
               <Tooltip
@@ -104,7 +109,7 @@ export function AnalyticsProfitChartPanel({
                   r: 6,
                   stroke: '#EAB308',
                   strokeWidth: 2,
-                  fill: '#0F172A'
+                  fill: getChartActiveDotFill(theme)
                 }}
               />
             </AreaChart>

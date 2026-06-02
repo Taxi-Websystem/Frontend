@@ -4,8 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { api, getApiErrorMessage } from '../../api/axios';
 import { parseApiRole } from '../../utils/roles';
 import { getCurrentRole, getCurrentUserId } from '../../utils/auth';
-import { PAGE_CARD_CLASS } from '../../styles/pageClasses';
+import { PAGE_CARD_CLASS, SETTINGS_SECTIONS_STACK_CLASS } from '../../styles/pageClasses';
 import { ManagerSectionHeader } from './shared/ManagerSectionHeader';
+import { ThemeSettingsSection } from '../../theme/ThemeSettingsSection';
 import { FinancialSettingsSection } from './settings/FinancialSettingsSection';
 import { SuperAdminTransferModal } from './settings/SuperAdminTransferModal';
 import { SuperAdminTransferSection } from './settings/SuperAdminTransferSection';
@@ -144,36 +145,40 @@ export default function SettingsPage() {
 
       {transferError ? <div className="field-error-box mt-4">{transferError}</div> : null}
 
-      {(isManager || isSuperAdmin) && (
-        <FinancialSettingsSection
-          isSuperAdmin={isSuperAdmin}
-          loading={financialLoading}
-          saving={financialSaving}
-          error={financialError}
-          form={tariffForm}
-          setForm={setTariffForm}
-          isFormValid={isTariffFormValid(tariffForm)}
-          onSubmit={(event) => void saveTariffs(event)}
-        />
-      )}
+      <div className={`mt-6 ${SETTINGS_SECTIONS_STACK_CLASS}`}>
+        <ThemeSettingsSection />
 
-      {isSuperAdmin && (
-        <>
-          <SuperAdminTransferSection onOpenTransfer={() => setIsTransferOpen(true)} />
-          <SuperAdminTransferModal
-            isOpen={isTransferOpen}
-            confirmText={confirmText}
-            targetId={targetId}
-            transferLoading={transferLoading}
-            canSubmit={canSubmitTransfer}
-            targets={availableTransferTargets}
-            onClose={closeTransferModal}
-            onConfirmTextChange={setConfirmText}
-            onTargetIdChange={setTargetId}
-            onSubmit={transferSuperAdmin}
+        {(isManager || isSuperAdmin) && (
+          <FinancialSettingsSection
+            isSuperAdmin={isSuperAdmin}
+            loading={financialLoading}
+            saving={financialSaving}
+            error={financialError}
+            form={tariffForm}
+            setForm={setTariffForm}
+            isFormValid={isTariffFormValid(tariffForm)}
+            onSubmit={(event) => void saveTariffs(event)}
           />
-        </>
-      )}
+        )}
+
+        {isSuperAdmin && (
+          <>
+            <SuperAdminTransferSection onOpenTransfer={() => setIsTransferOpen(true)} />
+            <SuperAdminTransferModal
+              isOpen={isTransferOpen}
+              confirmText={confirmText}
+              targetId={targetId}
+              transferLoading={transferLoading}
+              canSubmit={canSubmitTransfer}
+              targets={availableTransferTargets}
+              onClose={closeTransferModal}
+              onConfirmTextChange={setConfirmText}
+              onTargetIdChange={setTargetId}
+              onSubmit={transferSuperAdmin}
+            />
+          </>
+        )}
+      </div>
     </section>
   );
 }

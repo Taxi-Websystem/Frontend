@@ -26,7 +26,7 @@ export function FinancialSettingsSection({
   onSubmit
 }: FinancialSettingsSectionProps) {
   return (
-    <div className={`mt-8 ${ORDER_CARD_CLASS}`}>
+    <div className={ORDER_CARD_CLASS}>
       <h3 className="text-sm font-semibold text-white">Фінансові налаштування</h3>
       <p className="mt-1 text-xs text-slate-400">Налаштування для розрахунку вартості поїздок.</p>
 

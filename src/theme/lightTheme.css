@@ -1,0 +1,172 @@
+html[data-theme='light'] {
+  color-scheme: light;
+
+  --app-page-bg: #e8edf4;
+  --app-shell-bg: #eef2f7;
+  --app-surface: rgba(255, 255, 255, 0.92);
+  --app-surface-solid: #ffffff;
+  --app-surface-raised: #ffffff;
+  --app-input-bg: #ffffff;
+  --app-border: rgba(15, 23, 42, 0.12);
+  --app-text-primary: #0f172a;
+  --app-text-secondary: #334155;
+  --app-text-muted: #64748b;
+  --app-text-label: #475569;
+  --app-shadow: 0 10px 40px rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme='light'],
+html[data-theme='light'] body,
+html[data-theme='light'] #root {
+  background-color: var(--app-page-bg);
+  color: var(--app-text-primary);
+}
+
+html[data-theme='light'] select,
+html[data-theme='light'] option {
+  background-color: var(--app-surface-solid);
+  color: var(--app-text-primary);
+}
+
+html[data-theme='light'] .bg-\[\#0F172A\] {
+  background-color: var(--app-shell-bg) !important;
+}
+
+html[data-theme='light'] .bg-\[\#0F172A\]\/60 {
+  background-color: rgba(255, 255, 255, 0.72) !important;
+}
+
+html[data-theme='light'] .bg-\[\#0F172A\]\/95 {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+}
+
+html[data-theme='light'] .bg-\[\#1E293B\] {
+  background-color: var(--app-input-bg) !important;
+}
+
+html[data-theme='light'] .border-white\/10 {
+  border-color: var(--app-border) !important;
+}
+
+html[data-theme='light'] .border-white\/5 {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-theme='light'] .bg-white\/5 {
+  background-color: var(--app-surface) !important;
+}
+
+html[data-theme='light'] .ring-white\/5 {
+  --tw-ring-color: rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] .text-white {
+  color: var(--app-text-primary) !important;
+}
+
+html[data-theme='light'] .text-slate-100 {
+  color: var(--app-text-primary) !important;
+}
+
+html[data-theme='light'] .text-slate-200 {
+  color: var(--app-text-secondary) !important;
+}
+
+html[data-theme='light'] .text-slate-300 {
+  color: var(--app-text-label) !important;
+}
+
+html[data-theme='light'] .text-slate-400 {
+  color: var(--app-text-muted) !important;
+}
+
+html[data-theme='light'] .hover\:text-white:hover {
+  color: var(--app-text-primary) !important;
+}
+
+html[data-theme='light'] .hover\:bg-white\/5:hover {
+  background-color: rgba(15, 23, 42, 0.05) !important;
+}
+
+html[data-theme='light'] .hover\:bg-white\/10:hover {
+  background-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-theme='light'] .auth-bg-layers {
+  background:
+    radial-gradient(ellipse 95% 75% at 50% 50%, rgba(234, 179, 8, 0.12), transparent 58%),
+    radial-gradient(ellipse 100% 80% at 50% 100%, rgba(148, 163, 184, 0.18), transparent 55%) !important;
+}
+
+html[data-theme='light'] .phone-field-wrap,
+html[data-theme='light'] .field-input,
+html[data-theme='light'] .field-select,
+html[data-theme='light'] .manager-phone-field,
+html[data-theme='light'] .manager-phone-field__prefix,
+html[data-theme='light'] .manager-phone-field__input {
+  background-color: var(--app-input-bg) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text-primary) !important;
+  color-scheme: light;
+  -webkit-text-fill-color: var(--app-text-primary);
+}
+
+html[data-theme='light'] .field-input::placeholder,
+html[data-theme='light'] .manager-phone-field__input::placeholder {
+  color: var(--app-text-muted) !important;
+  -webkit-text-fill-color: var(--app-text-muted);
+}
+
+html[data-theme='light'] .field-input:disabled,
+html[data-theme='light'] .field-select:disabled,
+html[data-theme='light'] .manager-phone-field__input:disabled {
+  color: var(--app-text-primary) !important;
+  -webkit-text-fill-color: var(--app-text-primary);
+  background-color: #f1f5f9 !important;
+}
+
+html[data-theme='light'] .field-select option {
+  background-color: var(--app-surface-solid) !important;
+  color: var(--app-text-primary) !important;
+}
+
+html[data-theme='light'] .manager-icon-btn,
+html[data-theme='light'] .manager-icon-btn--danger,
+html[data-theme='light'] .manager-action-btn--online,
+html[data-theme='light'] .manager-status-chip {
+  border-color: var(--app-border) !important;
+  background-color: rgba(255, 255, 255, 0.88) !important;
+  color: var(--app-text-label) !important;
+}
+
+html[data-theme='light'] .shadow-2xl,
+html[data-theme='light'] .shadow-lg {
+  box-shadow: var(--app-shadow) !important;
+}
+
+html[data-theme='light'] .text-\[\#0F172A\] {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .text-\[\#EAB308\],
+html[data-theme='light'] .text-\[\#eab308\] {
+  color: #ca8a04 !important;
+}
+
+html[data-theme='light'] .bg-\[\#EAB308\],
+html[data-theme='light'] .bg-\[\#eab308\] {
+  background-color: #eab308 !important;
+}
+
+html[data-theme='light'] .bg-\[\#EAB308\]\/15 {
+  background-color: rgba(234, 179, 8, 0.18) !important;
+}
+
+html[data-theme='light'] .sidebar-logout-btn {
+  color: #dc2626 !important;
+}
+
+html[data-theme='light'] .sidebar-logout-btn:hover {
+  color: #b91c1c !important;
+  background-color: rgba(239, 68, 68, 0.12) !important;
+}

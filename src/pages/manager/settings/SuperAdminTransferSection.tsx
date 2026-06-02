@@ -7,7 +7,7 @@ interface SuperAdminTransferSectionProps {
 
 export function SuperAdminTransferSection({ onOpenTransfer }: SuperAdminTransferSectionProps) {
   return (
-    <div className={`mt-6 ${ORDER_CARD_CLASS}`}>
+    <div className={ORDER_CARD_CLASS}>
       <h3 className="text-sm font-semibold text-white">Роль Адміністратора</h3>
       <p className="mt-1 text-xs text-slate-400">
         Незворотна дія: роль Адміністратора буде змінена на Менеджера.
