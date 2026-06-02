@@ -2,7 +2,6 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { api } from '../api/axios';
 import { getPostLoginPath, type AppRole } from '../utils/auth';
-import { LICENSE_PLATE_REGEX } from '../utils/licensePlate';
 import { isUaPhoneLocalComplete, extractUaPhoneDigitsFromStoredValue } from '../utils/phone';
 import { sanitizeNameUa } from '../utils/nameFields';
 import { PAGE_CARD_CLASS } from '../styles/pageClasses';
@@ -13,8 +12,10 @@ import { RegistrationSideStats } from './completeRegistration/RegistrationSideSt
 import {
   getProfileProgress,
   getRegistrationRoleLabel,
+  isDriverProfileFormValid,
   type AuthMe
 } from './completeRegistration/registrationHelpers';
+import { LICENSE_PLATE_REGEX } from '../utils/licensePlate';
 
 export default function CompleteRegistrationPage() {
   const navigate = useNavigate();
@@ -81,8 +82,13 @@ export default function CompleteRegistrationPage() {
   const isCarColorFilled = carColor.trim().length > 0;
   const isLicensePlateValid = licensePlate.trim().length === 8 && plateOk;
 
-  const driverFormComplete =
-    isNameFilled && isCarBrandFilled && isCarModelFilled && isCarColorFilled && isLicensePlateValid;
+  const driverFormComplete = isDriverProfileFormValid(
+    name,
+    carBrand,
+    carModel,
+    carColor,
+    licensePlate
+  );
   const adminFormComplete = isNameFilled;
   const canSubmit = isDriver ? driverFormComplete : isManagerOrAdmin ? adminFormComplete : false;
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useOnClickOutside } from '../hooks/useOnClickOutside';
 import { Loader2 } from 'lucide-react';
+import { FormFieldSpinner } from './FormFieldSpinner';
 
 interface CarAutocompleteProps {
   label: string;
@@ -12,6 +13,7 @@ interface CarAutocompleteProps {
   required?: boolean;
   placeholder?: string;
   hint?: string;
+  profileLoading?: boolean;
 }
 
 export default function CarAutocomplete({
@@ -23,7 +25,8 @@ export default function CarAutocomplete({
   disabled,
   required,
   placeholder,
-  hint
+  hint,
+  profileLoading = false
 }: CarAutocompleteProps) {
   const listId = useId();
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -43,6 +46,7 @@ export default function CarAutocomplete({
     const trimmed = query.trim();
     if (trimmed.length < 2) {
       setOptions([]);
+      setOpen(false);
       return;
     }
 
@@ -62,7 +66,6 @@ export default function CarAutocomplete({
                 allOptions.findIndex((candidate) => candidate.toLowerCase() === option.toLowerCase()) === index
             );
           setOptions(normalizedOptions);
-          setOpen(normalizedOptions.length > 0);
         })
         .finally(() => setLoading(false));
     }, 300);
@@ -86,6 +89,9 @@ export default function CarAutocomplete({
     <label className="mb-1 block text-sm font-medium text-slate-300">
       {label}
       <div ref={wrapRef} className="relative mt-2">
+        {profileLoading ? (
+          <FormFieldSpinner />
+        ) : (
         <div className="relative">
           <input
             required={required}
@@ -97,14 +103,12 @@ export default function CarAutocomplete({
               setQuery(next);
               setPickedValue(null);
               onChange(next);
-              setOpen(true);
-            }}
-            onFocus={() => {
-              if (options.length > 0) setOpen(true);
+              setOpen(next.trim().length >= 2);
             }}
             className="field-input w-full pr-10 disabled:cursor-not-allowed disabled:opacity-60"
             placeholder={placeholder}
             autoComplete="off"
+            name={`car-field-${listId}`}
             aria-expanded={open}
             aria-controls={listId}
           />
@@ -114,6 +118,7 @@ export default function CarAutocomplete({
             </span>
           ) : null}
         </div>
+        )}
         {open && options.length > 0 ? (
           <ul
             id={listId}

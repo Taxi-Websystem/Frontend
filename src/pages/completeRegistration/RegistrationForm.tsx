@@ -1,6 +1,9 @@
 import { ArrowRight, Loader2, Save } from 'lucide-react';
+
+export type RegistrationFormVariant = 'registration' | 'settings';
 import type { FormEvent } from 'react';
 import CarAutocomplete from '../../components/CarAutocomplete';
+import { FormFieldSpinner } from '../../components/FormFieldSpinner';
 import { sanitizeCarBrandOrModel, sanitizeCarColorUa, sanitizeCarMake } from '../../utils/carFields';
 import { formatLicensePlateInput } from '../../utils/licensePlate';
 import { sanitizeNameUa } from '../../utils/nameFields';
@@ -27,6 +30,7 @@ interface RegistrationFormProps {
   onCarColorChange: (value: string) => void;
   onLicensePlateChange: (value: string) => void;
   onSubmit: (event: FormEvent) => void;
+  variant?: RegistrationFormVariant;
 }
 
 const hintTextClass = 'mt-1 text-xs text-slate-400';
@@ -50,12 +54,15 @@ export function RegistrationForm({
   onCarModelChange,
   onCarColorChange,
   onLicensePlateChange,
-  onSubmit
+  onSubmit,
+  variant = 'registration'
 }: RegistrationFormProps) {
   const phoneDigitsLocal = extractUaPhoneDigitsFromStoredValue(phoneNumber);
+  const isSettings = variant === 'settings';
+  const profileLoading = !profileLoaded;
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
+    <form onSubmit={onSubmit} className="space-y-5" autoComplete="off">
       <div>
         <label className={FIELD_LABEL_CLASS_SPACED}>Номер телефону</label>
         {profileLoaded ? (
@@ -67,6 +74,8 @@ export function RegistrationForm({
               value={phoneDigitsLocal}
               placeholder="XXXXXXXXX"
               className="manager-phone-field__input"
+              autoComplete="off"
+              readOnly
             />
           </div>
         ) : (
@@ -80,14 +89,20 @@ export function RegistrationForm({
 
       <label className={FIELD_LABEL_CLASS_SPACED}>
         Ім&apos;я
-        <input
-          required
-          autoFocus={name.length === 0}
-          value={name}
-          onChange={(event) => onNameChange(sanitizeNameUa(event.target.value))}
-          className="mt-2 field-input"
-          placeholder="Олексій"
-        />
+        {profileLoading ? (
+          <FormFieldSpinner className="mt-2" />
+        ) : (
+          <input
+            required
+            autoFocus={name.length === 0}
+            value={name}
+            onChange={(event) => onNameChange(sanitizeNameUa(event.target.value))}
+            className="mt-2 field-input"
+            placeholder="Олексій"
+            autoComplete="off"
+            name="driver-profile-name"
+          />
+        )}
         <p className={hintTextClass}>Українською (кирилиця)</p>
       </label>
 
@@ -102,6 +117,7 @@ export function RegistrationForm({
             search={searchCarMakes}
             normalize={sanitizeCarMake}
             onChange={onCarBrandChange}
+            profileLoading={profileLoading}
           />
           <CarAutocomplete
             required
@@ -113,6 +129,7 @@ export function RegistrationForm({
             search={(query) => searchCarModels(carBrand, query)}
             normalize={sanitizeCarBrandOrModel}
             onChange={onCarModelChange}
+            profileLoading={profileLoading}
           />
           <CarAutocomplete
             required
@@ -123,18 +140,25 @@ export function RegistrationForm({
             search={searchCarColorsUa}
             normalize={sanitizeCarColorUa}
             onChange={onCarColorChange}
+            profileLoading={profileLoading}
           />
           <label className={FIELD_LABEL_CLASS_SPACED}>
             Номер авто
-            <input
-              required
-              value={licensePlate}
-              onChange={(event) => onLicensePlateChange(formatLicensePlateInput(event.target.value))}
-              maxLength={8}
-              inputMode="text"
-              className="mt-2 field-input"
-              placeholder="BC9193OB"
-            />
+            {profileLoading ? (
+              <FormFieldSpinner className="mt-2" />
+            ) : (
+              <input
+                required
+                value={licensePlate}
+                onChange={(event) => onLicensePlateChange(formatLicensePlateInput(event.target.value))}
+                maxLength={8}
+                inputMode="text"
+                className="mt-2 field-input"
+                placeholder="BC9193OB"
+                autoComplete="off"
+                name="driver-license-plate"
+              />
+            )}
             <p className={hintTextClass}>Формат: 2 літери, 4 цифри, 2 літери</p>
           </label>
         </>
@@ -144,13 +168,17 @@ export function RegistrationForm({
 
       <button
         type="submit"
-        disabled={loading || !canSubmit}
-        className={`${primaryButtonClass} relative disabled:opacity-100`}
+        disabled={loading || !canSubmit || profileLoading}
+        className={
+          isSettings
+            ? 'manager-accent-glow manager-primary-btn relative mt-2 inline-flex w-full max-w-xs items-center justify-center rounded-full bg-[#EAB308] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-[filter,box-shadow,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none sm:w-auto'
+            : `${primaryButtonClass} relative disabled:opacity-100`
+        }
       >
         <span className={`inline-flex items-center gap-2 ${loading ? 'invisible' : ''}`}>
-          <Save className="h-5 w-5" />
-          Зберегти і продовжити
-          <ArrowRight className="h-5 w-5" />
+          <Save size={isSettings ? 16 : 20} className={isSettings ? undefined : 'h-5 w-5'} />
+          {isSettings ? 'Зберегти' : 'Зберегти і продовжити'}
+          {!isSettings ? <ArrowRight className="h-5 w-5" /> : null}
         </span>
         {loading ? (
           <span className="pointer-events-none absolute inset-0 flex items-center justify-center">

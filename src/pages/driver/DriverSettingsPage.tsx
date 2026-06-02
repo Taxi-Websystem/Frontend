@@ -2,6 +2,7 @@ import { Loader2, Settings } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import FormSwitch from '../../components/FormSwitch';
 import { PAGE_CARD_CLASS } from '../../styles/pageClasses';
+import { PersonalInfoSettingsSection } from './settings/PersonalInfoSettingsSection';
 import { api, getApiErrorMessage } from '../../api/axios';
 import type { UserStatus } from '../../utils/userStatus';
 
@@ -83,6 +84,8 @@ export default function DriverSettingsPage() {
       </div>
 
       {error ? <div className="field-error-box mb-4">{error}</div> : null}
+
+      <PersonalInfoSettingsSection />
 
       {loading || !state ? (
         <div className="text-center text-slate-400">

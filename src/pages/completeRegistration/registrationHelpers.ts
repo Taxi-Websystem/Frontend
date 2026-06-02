@@ -1,4 +1,5 @@
 import type { AppRole } from '../../utils/auth';
+import { LICENSE_PLATE_REGEX } from '../../utils/licensePlate';
 
 export interface AuthMe {
   phoneNumber: string;
@@ -44,4 +45,22 @@ export function getProfileProgress(
   }
 
   return { completedFields: 0, totalFields: 0 };
+}
+
+export function isDriverProfileFormValid(
+  name: string,
+  carBrand: string,
+  carModel: string,
+  carColor: string,
+  licensePlate: string
+): boolean {
+  const plate = licensePlate.trim();
+  return (
+    name.trim().length > 0 &&
+    carBrand.trim().length > 0 &&
+    carModel.trim().length > 0 &&
+    carColor.trim().length > 0 &&
+    plate.length === 8 &&
+    LICENSE_PLATE_REGEX.test(plate)
+  );
 }
